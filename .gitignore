@@ -1,0 +1,7 @@
+*.tar.gz
+*.zip
+*.pdf
+cpp-cgdk/build/*
+codeball2018-linux/logs/*
+python.3-cgdk/*
+repeater/*
