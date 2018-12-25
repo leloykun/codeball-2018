@@ -2,8 +2,6 @@
 *.zip
 *.pdf
 cpp-cgdk/build/*
-!cpp-cgdk/build/MyStrategy
-!cpp-cgdk/build/MyPrevStrategy
 codeball2018-linux/logs/*
 python.3-cgdk/*
 repeater/*
