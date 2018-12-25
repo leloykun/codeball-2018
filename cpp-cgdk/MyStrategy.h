@@ -19,8 +19,11 @@ public:
 
   int prev_tick = -1;
   std::vector<Vec3D> predicted_ball_positions;
+  std::vector<std::vector<Vec3D> > predicted_robot_positions;
+  std::vector<Vec2D> target_positions;
 
-  std::string draw_position_util(const Vec3D &pos);
+  std::string draw_sphere_util(const Vec3D &pos, double radius, double r, double g, double b);
+  std::string draw_sphere_util(const Vec2D &pos);
   std::string convert_positions_to_string(const std::vector<Vec3D> &positions);
 
   void act(const model::Robot& me, const model::Rules& rules, const model::Game& game, model::Action& action) override;

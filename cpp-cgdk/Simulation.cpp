@@ -1,22 +1,53 @@
 #include "Simulation.h"
 #include "PointVectors.h"
+#include <random>
+#include <vector>
 
 using namespace model;
 
-Simulation::Simulation(const Ball &ball, const Rules &rules, double delta_time) {
+Simulation::Simulation(const Ball &ball,
+                       const std::vector<Robot> &robots,
+                       const Rules &rules,
+                       double delta_time) {
   this->ball = {
     Vec3D(ball.x, ball.z, ball.y),
     Vec3D(ball.velocity_x, ball.velocity_z, ball.velocity_y),
     rules.BALL_RADIUS,
     rules.BALL_MASS,
-    rules.BALL_ARENA_E
+    rules.BALL_ARENA_E,
   };
+  for (Robot robot : robots) {
+    this->robots.push_back({
+      Vec3D(robot.x, robot.z, robot.y),
+      Vec3D(robot.velocity_x, robot.velocity_z, robot.velocity_y),
+      rules.ROBOT_RADIUS,
+      rules.ROBOT_MASS,
+      rules.ROBOT_ARENA_E,
+    });
+  }
   this->rules = rules;
   this->delta_time = delta_time;
 }
 
+double Simulation::clamp(double a, double min_val, double max_val) {
+  return std::min(std::max(a, min_val), max_val);
+}
+
+double Simulation::clamp(double a, double max_val) {
+  return std::min(a, max_val);
+}
+
 void Simulation::update() {
+  move(robots);
   move(ball);
+
+  for (int i = 0; i < int(robots.size()); ++i)
+    for (int j = 0; j < i; ++j)
+      collide_entities(robots[i], robots[j]);
+  for (Entity &robot : robots) {
+    // collide_entities(robot, ball);
+    collide_with_arena(robot);
+  }
   collide_with_arena(ball);
 }
 
@@ -25,6 +56,33 @@ void Simulation::move(Entity &en) {
   en.position += en.velocity * this->delta_time;
   en.position.y -= this->rules.GRAVITY * this->delta_time * this->delta_time / 2.0;
   en.velocity.y -= this->rules.GRAVITY * this->delta_time;
+}
+
+void Simulation::move(std::vector<Entity> &ens) {
+  for (Entity &en : ens)
+    move(en);
+}
+
+void Simulation::collide_entities(Entity &a, Entity &b) {
+  std::uniform_real_distribution<double> unif(rules.MIN_HIT_E, rules.MAX_HIT_E);
+  std::default_random_engine re;
+
+  Vec3D delta_position = b.position - a.position;
+  double distance = delta_position.len();
+  double penetration = a.radius + b.radius - distance;
+  if (penetration > 0) {
+    double k_a = (1/a.mass) / ((1/a.mass) + (1/b.mass));
+    double k_b = (1/b.mass) / ((1/a.mass) + (1/b.mass));
+    Vec3D normal = delta_position.normalize();
+    a.position -= normal * penetration * k_a;
+    b.position += normal * penetration * k_b;
+    double delta_velocity = (b.velocity - a.velocity).dot(normal); // + b.radius_change_speed - a.radius_change_speed;
+    if (delta_velocity < 0) {
+      Vec3D impulse = normal * (1 + unif(re)) * delta_velocity;
+      a.velocity += impulse * k_a;
+      b.velocity -= impulse * k_b;
+    }
+  }
 }
 
 void Simulation::collide_with_arena(Entity &en) {
@@ -58,11 +116,6 @@ DaN Simulation::dan_to_sphere_outer(Vec3D point, Vec3D sphere_center, double sph
     (point - sphere_center).len() - sphere_radius,
     (point - sphere_center).normalize()
   };
-}
-
-
-double Simulation::clamp(double a, double min_val, double max_val) {
-  return std::min(std::max(a, min_val), max_val);
 }
 
 DaN Simulation::dan_to_arena_quarter(const Vec3D &point) {
