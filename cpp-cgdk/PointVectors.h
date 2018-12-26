@@ -13,33 +13,57 @@ struct Vec2D {
   Vec2D() {}
   Vec2D(double x, double z) : x(x), z(z) {}
   void set(double _x, double _z) { x=_x; z=_z; }
-  double len() { return std::sqrt(x*x + z*z); }
-  Vec2D operator-(const Vec2D &other) { return {x-other.x, z-other.z}; }
-  void operator-=(const Vec2D &other) { x -= other.x; z -= other.z; }
-  Vec2D operator+(const Vec2D &other) { return {x+other.x, z+other.z}; }
-  void operator+=(const Vec2D &other) { x += other.x; z += other.z; }
-  Vec2D operator*(const double num) { return {x*num, z*num}; }
-  void operator*=(const double num) { x *= num; z *= num; }
-  Vec2D normalize() { double l=len(); return {x/l, z/l}; }
+  double len() const { return std::sqrt(x*x + z*z); }
+  Vec2D normalize() const { double l=len(); return {x/l, z/l}; }
+  Vec2D& operator-=(const Vec2D &other) {
+    this->x -= other.x;  this->z -= other.z;
+    return *this;  }
+  Vec2D& operator+=(const Vec2D &other) {
+    this->x += other.x;  this->z += other.z;
+    return *this;  }
+  Vec2D& operator*=(const double num) {
+    this->x *= num;  this->z *= num;
+    return *this;  }
 };
+inline Vec2D operator-(Vec2D lhs, const Vec2D &rhs) {
+  lhs -= rhs;  return lhs;  }
+inline Vec2D operator+(Vec2D lhs, const Vec2D &rhs) {
+  lhs += rhs;  return lhs;  }
+inline Vec2D operator*(Vec2D lhs, const double num) {
+  lhs *= num;  return lhs;  }
 
 struct Vec3D {
   double x {0.0};
   double z {0.0};
   double y {0.0};
   Vec3D() {}
-  Vec3D(double x, double z, double y) : x(x), z(z), y(y) {}
+  Vec3D(double x, double z, double y) : x(x), z(z), y(y) { }
   void set(double _x, double _z, double _y) { x=_x; z=_z; y=_y; }
-  double len() { return std::sqrt(x*x + z*z + y*y); }
-  Vec3D operator-(const Vec3D &other) { return {x-other.x, z-other.z, y-other.y}; }
-  void operator-=(const Vec3D &other) { x -= other.x; z -= other.z; y -= other.y; }
-  Vec3D operator+(const Vec3D &other) { return {x+other.x, z+other.z, y+other.y}; }
-  void operator+=(const Vec3D &other) { x += other.x; z += other.z; y += other.y; }
-  Vec3D operator*(double num) { return {x*num, z*num, y*num}; }
-  void operator*=(double num) { x *= num; z *= num; y *= num; }
-  Vec3D normalize() { double l=len(); return {x/l, z/l, y/l}; }
-  double dot(const Vec3D &other) { return (x*other.x) + (z*other.z) + (y*other.y); }
-  void clamp(double val) { x=std::min(x, val); z=std::min(z, val); y=std::min(y, val); }
+  void clamp(double val) {
+    this->x = std::min(this->x, val);
+    this->z = std::min(this->z, val);
+    this->y = std::min(this->y, val);  }
+  double len() const { return std::sqrt(x*x + z*z + y*y); }
+  Vec3D normalize() const {
+    double l = len();
+    return {x/l, z/l, y/l};  }
+  double dot(const Vec3D &other) const {
+    return (x*other.x) + (z*other.z) + (y*other.y);  }
+  Vec3D& operator-=(const Vec3D &other) {
+    this->x -= other.x;  this->z -= other.z;  this->y -= other.y;
+    return *this;  }
+  Vec3D& operator+=(const Vec3D &other) {
+    this->x += other.x;  this->z += other.z;  this->y += other.y;
+    return *this;  }
+  Vec3D& operator*=(const double num) {
+    this->x *= num;  this->z *= num;  this->y *= num;
+    return *this;  }
 };
+inline Vec3D operator-(Vec3D lhs, const Vec3D &rhs) {
+  lhs -= rhs;  return lhs;  }
+inline Vec3D operator+(Vec3D lhs, const Vec3D &rhs) {
+  lhs += rhs;  return lhs;  }
+inline Vec3D operator*(Vec3D lhs, const double num) {
+  lhs *= num;  return lhs;  }
 
 #endif

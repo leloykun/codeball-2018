@@ -12,7 +12,7 @@
 
 #include "PointVectors.h"
 
-enum entity_type {ENEMY, BALL, ALLY};
+enum EntityType {ENEMY, BALL, ALLY};
 
 struct Entity {
   Vec3D position;
@@ -25,7 +25,7 @@ struct Entity {
   // -1 for enemies
   //  0 for the ball
   //  1 for allies
-  entity_type type;
+  EntityType type;
   int last_sim_jump = -1;
 };
 
@@ -60,9 +60,9 @@ public:
   void unjump(Entity &en);
   bool collide_entities(Entity &a, Entity &b);
   DaN collide_with_arena(Entity &en);
-  DaN dan_to_plane(Vec3D point, Vec3D point_on_plane, Vec3D plane_normal);
-  DaN dan_to_sphere_inner(Vec3D point, Vec3D sphere_center, double sphere_radius);
-  DaN dan_to_sphere_outer(Vec3D point, Vec3D sphere_center, double sphere_radius);
+  DaN dan_to_plane(const Vec3D &point, const Vec3D &point_on_plane, const Vec3D &plane_normal);
+  DaN dan_to_sphere_inner(const Vec3D &point, const Vec3D &sphere_center, double sphere_radius);
+  DaN dan_to_sphere_outer(const Vec3D &point, const Vec3D &sphere_center, double sphere_radius);
   DaN dan_to_arena_quarter(const Vec3D &point);
   DaN dan_to_arena(Vec3D &point);
 };

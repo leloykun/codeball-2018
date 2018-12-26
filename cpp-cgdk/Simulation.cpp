@@ -165,21 +165,21 @@ DaN Simulation::collide_with_arena(Entity &en) {
   return arena_collision;
 }
 
-DaN Simulation::dan_to_plane(Vec3D point, Vec3D point_on_plane, Vec3D plane_normal) {
+DaN Simulation::dan_to_plane(const Vec3D &point, const Vec3D &point_on_plane, const Vec3D &plane_normal) {
   return {
     plane_normal.dot(point - point_on_plane),
     plane_normal
   };
 }
 
-DaN Simulation::dan_to_sphere_inner(Vec3D point, Vec3D sphere_center, double sphere_radius) {
+DaN Simulation::dan_to_sphere_inner(const Vec3D &point, const Vec3D &sphere_center, double sphere_radius) {
   return {
     sphere_radius - (point - sphere_center).len(),
     (sphere_center - point).normalize()
   };
 }
 
-DaN Simulation::dan_to_sphere_outer(Vec3D point, Vec3D sphere_center, double sphere_radius) {
+DaN Simulation::dan_to_sphere_outer(const Vec3D &point, const Vec3D &sphere_center, double sphere_radius) {
   return {
     (point - sphere_center).len() - sphere_radius,
     (point - sphere_center).normalize()

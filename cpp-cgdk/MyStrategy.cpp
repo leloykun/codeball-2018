@@ -11,6 +11,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
   if (game.current_tick == 0) {
     std::cout<<"START!\n";
 
+    this->rules = rules;
+
     // get IDs of allies
     for (Robot robot : game.robots)
       if (robot.is_teammate)
@@ -21,8 +23,11 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
       target_positions.push_back(Vec3D());
       target_velocities.push_back(Vec3D());
       jump_speeds.push_back(0.0);
+      // roles.push_back(GUARD);
     }
   }
+
+  bool is_start_of_round = Vec2D(game.ball.x, game.ball.z).len() < rules.BALL_RADIUS;
 
   Vec3D my_position = {me.x, me.z, me.y};
   Vec3D ball_position = {game.ball.x, game.ball.z, game.ball.y};
@@ -67,7 +72,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
       action,
       me.id,
       Vec3D(me.x, me.z, 0.0),
-      Vec3D(0.0, -rules.MAX_ENTITY_SPEED, 0.0),
+      Vec3D(0.0, 0.0, -rules.MAX_ENTITY_SPEED),
       0.0,
       true
     );
@@ -99,7 +104,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
     is_attacker = true;
 
   // At the start of the round, 2 robots must attack the ball
-  if (game.robots.size() == 4 and Vec2D(game.ball.x, game.ball.z).len() < rules.BALL_RADIUS) {
+  if (is_start_of_round and game.robots.size() == 4) {
     if (!is_attacker and dist_to_ball < rules.BALL_RADIUS + 4*rules.ROBOT_MAX_RADIUS)
       jump = true;
     is_attacker = true;
@@ -111,6 +116,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
       double t = i * SIMULATION_PRECISION;
 
       Vec2D target_pos(predicted_ball_positions[i].x, predicted_ball_positions[i].z);
+      // TODO: Change this if the target is near the goal
       target_pos.z -= 1.5*rules.ROBOT_RADIUS;
 
       // If ball will not leave arena boundary
@@ -124,6 +130,13 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
         double need_speed = delta_pos.len() / t;
         // If the speed is in acceptable range
         if (0.5 * rules.ROBOT_MAX_GROUND_SPEED < need_speed and need_speed < rules.ROBOT_MAX_GROUND_SPEED) {
+          // If a robot already is headed there and it is closer, then discard this
+          // However, if it is just the start of the round, don't check this
+          if (!is_start_of_round and
+              is_duplicate_target(target_pos, delta_pos, me.id, game.robots))
+            break;
+            // should I use `continue` instead?
+
           Vec2D target_velocity = delta_pos.normalize() * need_speed;
           set_action(
             action,
@@ -142,7 +155,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
   // Defender's strategy (or attacker's who did not find good moment):
   // Standing in the middle of out net
   //Vec2D target_pos(0.0, -(rules.arena.depth/2.0) + rules.arena.bottom_radius));
-  Vec2D target_pos(0.0, -(rules.arena.depth/2.0));
+  Vec2D target_pos(0.0, -(rules.arena.depth/2.0) - rules.BALL_RADIUS);
 
   // Find time and place where ball crosses the net line
   // If this place is inside the net
@@ -167,6 +180,25 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
   );
 
   prev_tick = game.current_tick;
+}
+
+bool MyStrategy::is_duplicate_target(const Vec2D &target_pos, const Vec2D &delta_pos, int id, const std::vector<Robot> &robots) {
+  for (Robot robot : robots) {
+    if (!robot.is_teammate or robot.id == id)
+      continue;
+
+    Vec2D target_pos_other = Vec2D(
+      target_positions[robot.id].x,
+      target_positions[robot.id].z
+    );
+    Vec2D delta_pos_other = target_pos_other - Vec2D(robot.x, robot.z);
+
+    if ((target_pos - target_pos_other).len() < rules.BALL_RADIUS and
+        delta_pos_other.len() < delta_pos.len()) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void MyStrategy::set_action(model::Action &action,
@@ -228,7 +260,7 @@ std::string MyStrategy::custom_rendering() {
 
   // target positions of the robots
   for (int id : ally_ids)
-    res += "," + draw_sphere_util(target_positions[id], 1.0, 0.0, 0.0, 1.0, 0.5);
+    res += "," + draw_sphere_util(target_positions[id], 1.0, 0.0, 1.0, 1.0, 0.5);
 
   res += "]";
   return res;
