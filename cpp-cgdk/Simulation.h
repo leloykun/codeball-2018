@@ -12,9 +12,7 @@
 
 #include "PointVectors.h"
 
-const int ENEMY = -1;
-const int BALL = 0;
-const int ALLY = 1;
+enum entity_type {ENEMY, BALL, ALLY};
 
 struct Entity {
   Vec3D position;
@@ -27,7 +25,7 @@ struct Entity {
   // -1 for enemies
   //  0 for the ball
   //  1 for allies
-  int type;
+  entity_type type;
   int last_sim_jump = -1;
 };
 

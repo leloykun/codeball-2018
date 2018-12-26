@@ -24,14 +24,14 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
     }
   }
 
-  if (game.current_tick % 100 == 0)
-    std::cout<<game.current_tick<<"\n";
-
   Vec3D my_position = {me.x, me.z, me.y};
   Vec3D ball_position = {game.ball.x, game.ball.z, game.ball.y};
 
   // Recalculate the predictions of the ball's path on new tick
   if (prev_tick != game.current_tick) {
+    if (game.current_tick % 100 == 0)
+      std::cout<<game.current_tick<<"\n";
+
     predicted_ball_positions = {ball_position};
     predicted_ball_col_positions = {ball_position};
     predicted_robot_positions = {{}};
@@ -41,7 +41,12 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
       });
     }
 
-    Simulation sim(game.ball, game.robots, target_velocities, jump_speeds, rules, SIMULATION_PRECISION);
+    Simulation sim(game.ball,
+                   game.robots,
+                   target_velocities,
+                   jump_speeds,
+                   rules,
+                   SIMULATION_PRECISION);
     for(int i = 1; i <= SIMULATION_DURATION/SIMULATION_PRECISION; ++i) {
       sim.update();
       predicted_ball_positions.push_back(sim.ball.position);
@@ -58,19 +63,15 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
   // So, if we are not touching the ground, use nitro
   // to go back as soon as possible
   if (!me.touch) {
-    action.target_velocity_x = 0.0;
-    action.target_velocity_y = -rules.MAX_ENTITY_SPEED;
-    action.target_velocity_z = 0.0;
-    action.jump_speed = 0.0;
-    action.use_nitro = true;
-
-    target_positions[me.id] = {me.x, me.z, 0.0};
-    target_velocities[me.id] = {
-      action.target_velocity_x,
-      action.target_velocity_z,
-      action.target_velocity_y
-    };
-    jump_speeds[me.id] = action.jump_speed;
+    set_action(
+      action,
+      me.id,
+      Vec3D(me.x, me.z, 0.0),
+      Vec3D(0.0, -rules.MAX_ENTITY_SPEED, 0.0),
+      0.0,
+      true
+    );
+    // return
   }
 
   double dist_to_ball = (my_position - ball_position).len();
@@ -78,8 +79,8 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
   // Lets jump if we would hit the ball, and
   // we are on the same side of the ball as out net, so
   // the ball would go into opponent's side of the arena
-  bool jump = (dist_to_ball < rules.BALL_RADIUS + 2*rules.ROBOT_MAX_RADIUS) and
-              (me.z < game.ball.z);
+  bool jump = ((dist_to_ball < rules.BALL_RADIUS + 2*rules.ROBOT_MAX_RADIUS) and
+               (me.z < game.ball.z));
 
   // Since there are multiple robots in out team lets determine out role - attacker or defender
 
@@ -124,19 +125,14 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
         // If the speed is in acceptable range
         if (0.5 * rules.ROBOT_MAX_GROUND_SPEED < need_speed and need_speed < rules.ROBOT_MAX_GROUND_SPEED) {
           Vec2D target_velocity = delta_pos.normalize() * need_speed;
-          action.target_velocity_x = target_velocity.x;
-          action.target_velocity_y = 0.0;
-          action.target_velocity_z = target_velocity.z;
-          action.jump_speed = (jump ? rules.ROBOT_MAX_JUMP_SPEED : 0.0);
-          action.use_nitro = false;
-
-          target_positions[me.id] = {target_pos.x, target_pos.z, 0.0};
-          target_velocities[me.id] = {
-            action.target_velocity_x,
-            action.target_velocity_z,
-            action.target_velocity_y
-          };
-          jump_speeds[me.id] = action.jump_speed;
+          set_action(
+            action,
+            me.id,
+            Vec3D(target_pos.x, target_pos.z, 0.0),
+            Vec3D(target_velocity.x, target_velocity.z, 0.0),
+            (jump ? rules.ROBOT_MAX_JUMP_SPEED : 0.0),
+            false
+          );
           return;
         }
       }
@@ -145,43 +141,97 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 
   // Defender's strategy (or attacker's who did not find good moment):
   // Standing in the middle of out net
-  Vec2D target_pos(0.0, -(rules.arena.depth/2.0) + rules.arena.bottom_radius);
-  // And, if the ball is rolling towards
-  if (game.ball.velocity_z < -EPS) {
-    // Find time and place where ball crosses the net line
-    // If this place is inside the net
-    // Go defend there
-    for (int i = 1; i < int(predicted_ball_positions.size()); ++i) {
-      if (predicted_ball_positions[i].z <= -rules.arena.depth/2.0) {
-        target_pos.x = predicted_ball_positions[i].x;
-        break;
-      }
+  //Vec2D target_pos(0.0, -(rules.arena.depth/2.0) + rules.arena.bottom_radius));
+  Vec2D target_pos(0.0, -(rules.arena.depth/2.0));
+
+  // Find time and place where ball crosses the net line
+  // If this place is inside the net
+  // Go defend there
+  for (int i = 1; i < int(predicted_ball_positions.size()); ++i) {
+    if (predicted_ball_positions[i].z <= -rules.arena.depth/2.0) {
+      target_pos.x = predicted_ball_positions[i].x;
+      // target_pos.z = predicted_ball_positions[i].z - 1.5 * rules.ROBOT_RADIUS;
+      break;
     }
   }
 
   Vec2D target_velocity = (target_pos - Vec2D(me.x, me.z)) * rules.ROBOT_MAX_GROUND_SPEED;
 
-  action.target_velocity_x = target_velocity.x;
-  action.target_velocity_y = 0.0;
-  action.target_velocity_z = target_velocity.z;
-  action.jump_speed = (jump ? rules.ROBOT_MAX_JUMP_SPEED : 0.0);
-  action.use_nitro = false;
-
-  target_positions[me.id] = {target_pos.x, target_pos.z, 0.0};
-  target_velocities[me.id] = {
-    action.target_velocity_x,
-    action.target_velocity_z,
-    action.target_velocity_y
-  };
-  jump_speeds[me.id] = action.jump_speed;
+  set_action(
+    action,
+    me.id,
+    Vec3D(target_pos.x, target_pos.z, 0.0),
+    Vec3D(target_velocity.x, target_velocity.z, 0.0),
+    (jump ? rules.ROBOT_MAX_JUMP_SPEED : 0.0),
+    false
+  );
 
   prev_tick = game.current_tick;
-
-  // std::cout<<"Finished tick "<<game.current_tick<<"\n";
 }
 
+void MyStrategy::set_action(model::Action &action,
+                            int id,
+                            const Vec3D &target_position,
+                            const Vec3D &target_velocity,
+                            double jump_speed,
+                            bool use_nitro) {
+  action.target_velocity_x = target_velocity.x;
+  action.target_velocity_y = target_velocity.y;
+  action.target_velocity_z = target_velocity.z;
+  action.jump_speed = jump_speed;
+  action.use_nitro = use_nitro;
+
+  target_positions[id] = target_position;
+  target_velocities[id] = target_velocity;
+  jump_speeds[id] = jump_speed;
+}
+
+
 std::string MyStrategy::custom_rendering() {
-  return convert_positions_to_string();
+  std::string res = "[";
+
+  // predicted path of the ball
+  for (int i = 0; i < int(predicted_ball_positions.size()); ++i) {
+    if (i)  res += ",";
+    res += draw_sphere_util(predicted_ball_positions[i], 1, 1, 0, 0, 0.5);
+  }
+  // predicted path of the ball_col
+  for (int i = 0; i < int(predicted_ball_col_positions.size()); ++i) {
+    res += "," + draw_sphere_util(predicted_ball_col_positions[i], 1, 0.5, 0, 0.5, 0.1);
+  }
+
+  // predicted paths of the robots
+  for (int j = 0; j < int(predicted_robot_positions[0].size()); ++j) {
+    for (int i = 1; i < int(predicted_robot_positions.size()); ++i) {
+      Vec3D prev_pos = predicted_robot_positions[i-1][j];
+      Vec3D position = predicted_robot_positions[i][j];
+      res += "," + draw_line_util(prev_pos, position, 10, 0, 0, 1, 0.5);
+    }
+  }
+
+  /*  b -- a
+   *  |    |
+   *  c -- d
+   */
+  Vec3D corner_A = Vec3D( 25, -11.7, 19);
+  Vec3D corner_B = Vec3D(-25, -11.7, 19);
+  Vec3D corner_C = Vec3D(-25, -11.7,  1);
+  Vec3D corner_D = Vec3D( 25, -11.7,  1);
+  // defense border (cross)
+  res += "," + draw_line_util(corner_A, corner_C, 5, 0, 1, 0, 0.5);
+  res += "," + draw_line_util(corner_B, corner_D, 5, 0, 1, 0, 0.5);
+  // defense border (box)
+  res += "," + draw_line_util(corner_A, corner_B, 5, 0, 1, 0, 0.5);
+  res += "," + draw_line_util(corner_B, corner_C, 5, 0, 1, 0, 0.5);
+  res += "," + draw_line_util(corner_C, corner_D, 5, 0, 1, 0, 0.5);
+  res += "," + draw_line_util(corner_D, corner_A, 5, 0, 1, 0, 0.5);
+
+  // target positions of the robots
+  for (int id : ally_ids)
+    res += "," + draw_sphere_util(target_positions[id], 1.0, 0.0, 0.0, 1.0, 0.5);
+
+  res += "]";
+  return res;
 }
 
 std::string MyStrategy::draw_sphere_util(const Vec3D &pos, double radius, double r, double g, double b, double a) {
@@ -209,47 +259,4 @@ std::string MyStrategy::draw_line_util(const Vec3D &p1, const Vec3D &p2, double 
                           "\"b\":" + std::to_string(b) + "," +
                           "\"a\":" + std::to_string(a);
   return "{\"Line\": {" + p1_str + "," + p2_str + "," + width_str + "," + color_str + "}}";
-}
-
-std::string MyStrategy::convert_positions_to_string() {
-  std::string res = "[";
-  // predicted path of the ball
-  for (int i = 0; i < int(predicted_ball_positions.size()); ++i) {
-    if (i)  res += ",";
-    res += draw_sphere_util(predicted_ball_positions[i], 1, 1, 0, 0, 0.5);
-  }
-  // predicted path of the ball_col
-  for (int i = 0; i < int(predicted_ball_col_positions.size()); ++i) {
-    res += "," + draw_sphere_util(predicted_ball_col_positions[i], 1, 0.5, 0, 0.5, 0.1);
-  }
-  // predicted paths of the robots
-  for (int j = 0; j < int(predicted_robot_positions[0].size()); ++j) {
-    for (int i = 1; i < int(predicted_robot_positions.size()); ++i) {
-      Vec3D prev_pos = predicted_robot_positions[i-1][j];
-      Vec3D position = predicted_robot_positions[i][j];
-      res += "," + draw_line_util(prev_pos, position, 10, 0, 0, 1, 0.5);
-    }
-  }
-  /*  b -- a
-   *  |    |
-   *  c -- d
-   */
-  Vec3D corner_A = Vec3D( 25, -11.7, 19);
-  Vec3D corner_B = Vec3D(-25, -11.7, 19);
-  Vec3D corner_C = Vec3D(-25, -11.7,  1);
-  Vec3D corner_D = Vec3D( 25, -11.7,  1);
-  // defense border (cross)
-  res += "," + draw_line_util(corner_A, corner_C, 5, 0, 1, 0, 0.5);
-  res += "," + draw_line_util(corner_B, corner_D, 5, 0, 1, 0, 0.5);
-  // defense border (box)
-  res += "," + draw_line_util(corner_A, corner_B, 5, 0, 1, 0, 0.5);
-  res += "," + draw_line_util(corner_B, corner_C, 5, 0, 1, 0, 0.5);
-  res += "," + draw_line_util(corner_C, corner_D, 5, 0, 1, 0, 0.5);
-  res += "," + draw_line_util(corner_D, corner_A, 5, 0, 1, 0, 0.5);
-  // target positions of the robots
-  for (int id : ally_ids)
-    res += "," + draw_sphere_util(target_positions[id], 1.0, 0.0, 0.0, 1.0, 0.5);
-
-  res += "]";
-  return res;
 }

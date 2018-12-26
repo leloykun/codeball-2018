@@ -25,17 +25,16 @@ public:
 
   std::vector<int> ally_ids;
 
-  int cur_avail_id = 1;
   std::vector<Vec3D> target_positions = {Vec3D()};
   std::vector<Vec3D> target_velocities = {Vec3D()};
   std::vector<double> jump_speeds = {0.0};
 
+  void act(const model::Robot& me, const model::Rules& rules, const model::Game& game, model::Action& action) override;
+  void set_action(model::Action &action, int id, const Vec3D &target_position, const Vec3D &target_velocity, double jump_speed, bool use_nitro);
+
+  std::string custom_rendering() override;
   std::string draw_sphere_util(const Vec3D &pos, double radius, double r, double g, double b, double a);
   std::string draw_line_util(const Vec3D &p1, const Vec3D &p2, double width, double r, double g, double b, double a);
-  std::string convert_positions_to_string();
-
-  void act(const model::Robot& me, const model::Rules& rules, const model::Game& game, model::Action& action) override;
-  std::string custom_rendering() override;
 };
 
 #endif
