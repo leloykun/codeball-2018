@@ -71,7 +71,6 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
       action.target_velocity_y
     };
     jump_speeds[me.id] = action.jump_speed;
-    return;
   }
 
   double dist_to_ball = (my_position - ball_position).len();
@@ -95,12 +94,12 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 
   // The defender automatically becomes an attacker when the ball reaches
   // 1/3 of the arena from our goal
-  if (me.z < game.ball.z and game.ball.z <= -rules.arena.depth / 6.0)
+  if (game.ball.z <= -rules.arena.depth / 6.0)
     is_attacker = true;
 
   // At the start of the round, 2 robots must attack the ball
-  if (!is_attacker and game.robots.size() == 4 and Vec2D(game.ball.x, game.ball.z).len() < rules.BALL_RADIUS) {
-    if (dist_to_ball < rules.BALL_RADIUS + 4*rules.ROBOT_MAX_RADIUS)
+  if (game.robots.size() == 4 and Vec2D(game.ball.x, game.ball.z).len() < rules.BALL_RADIUS) {
+    if (!is_attacker and dist_to_ball < rules.BALL_RADIUS + 4*rules.ROBOT_MAX_RADIUS)
       jump = true;
     is_attacker = true;
   }
