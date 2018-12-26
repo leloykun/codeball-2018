@@ -113,6 +113,9 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
   if (is_attacker) {
     // Attacker strategy
     for (int i = 1; i < int(predicted_ball_positions.size()); ++i) {
+      if (goal_scored(predicted_ball_positions[i].z))
+        break;
+
       double t = i * SIMULATION_PRECISION;
 
       Vec2D target_pos(predicted_ball_positions[i].x, predicted_ball_positions[i].z);
@@ -163,7 +166,6 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
   for (int i = 1; i < int(predicted_ball_positions.size()); ++i) {
     if (predicted_ball_positions[i].z <= -rules.arena.depth/2.0) {
       target_pos.x = predicted_ball_positions[i].x;
-      // target_pos.z = predicted_ball_positions[i].z - 1.5 * rules.ROBOT_RADIUS;
       break;
     }
   }
@@ -180,6 +182,10 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
   );
 
   prev_tick = game.current_tick;
+}
+
+bool MyStrategy::goal_scored(double z) {
+  return std::fabs(z) > rules.arena.depth/2.0 + rules.BALL_RADIUS;
 }
 
 bool MyStrategy::is_duplicate_target(const Vec2D &target_pos, const Vec2D &delta_pos, int id, const std::vector<Robot> &robots) {
@@ -222,13 +228,37 @@ void MyStrategy::set_action(model::Action &action,
 std::string MyStrategy::custom_rendering() {
   std::string res = "[";
 
+  /*  b -- a
+   *  |    |
+   *  c -- d
+   */
+  Vec3D corner_A = Vec3D( 25, -11.7, 19);
+  Vec3D corner_B = Vec3D(-25, -11.7, 19);
+  Vec3D corner_C = Vec3D(-25, -11.7,  1);
+  Vec3D corner_D = Vec3D( 25, -11.7,  1);
+  // defense border (cross)
+  res +=       draw_line_util(corner_A, corner_C, 5, 0, 1, 0, 0.5);
+  res += "," + draw_line_util(corner_B, corner_D, 5, 0, 1, 0, 0.5);
+  // defense border (box)
+  res += "," + draw_line_util(corner_A, corner_B, 5, 0, 1, 0, 0.5);
+  res += "," + draw_line_util(corner_B, corner_C, 5, 0, 1, 0, 0.5);
+  res += "," + draw_line_util(corner_C, corner_D, 5, 0, 1, 0, 0.5);
+  res += "," + draw_line_util(corner_D, corner_A, 5, 0, 1, 0, 0.5);
+
   // predicted path of the ball
   for (int i = 0; i < int(predicted_ball_positions.size()); ++i) {
-    if (i)  res += ",";
-    res += draw_sphere_util(predicted_ball_positions[i], 1, 1, 0, 0, 0.5);
+    if (goal_scored(predicted_ball_positions[i].z)) {
+      res += "," + draw_sphere_util(predicted_ball_positions[i], 1, 1, 0, 0, 1.0);
+      break;
+    }
+    res += "," + draw_sphere_util(predicted_ball_positions[i], 1, 1, 0, 0, 0.25);
   }
   // predicted path of the ball_col
   for (int i = 0; i < int(predicted_ball_col_positions.size()); ++i) {
+    if (goal_scored(predicted_ball_col_positions[i].z)) {
+      res += "," + draw_sphere_util(predicted_ball_col_positions[i], 1, 0.5, 0, 0.5, 1);
+      break;
+    }
     res += "," + draw_sphere_util(predicted_ball_col_positions[i], 1, 0.5, 0, 0.5, 0.1);
   }
 
@@ -240,23 +270,6 @@ std::string MyStrategy::custom_rendering() {
       res += "," + draw_line_util(prev_pos, position, 10, 0, 0, 1, 0.5);
     }
   }
-
-  /*  b -- a
-   *  |    |
-   *  c -- d
-   */
-  Vec3D corner_A = Vec3D( 25, -11.7, 19);
-  Vec3D corner_B = Vec3D(-25, -11.7, 19);
-  Vec3D corner_C = Vec3D(-25, -11.7,  1);
-  Vec3D corner_D = Vec3D( 25, -11.7,  1);
-  // defense border (cross)
-  res += "," + draw_line_util(corner_A, corner_C, 5, 0, 1, 0, 0.5);
-  res += "," + draw_line_util(corner_B, corner_D, 5, 0, 1, 0, 0.5);
-  // defense border (box)
-  res += "," + draw_line_util(corner_A, corner_B, 5, 0, 1, 0, 0.5);
-  res += "," + draw_line_util(corner_B, corner_C, 5, 0, 1, 0, 0.5);
-  res += "," + draw_line_util(corner_C, corner_D, 5, 0, 1, 0, 0.5);
-  res += "," + draw_line_util(corner_D, corner_A, 5, 0, 1, 0, 0.5);
 
   // target positions of the robots
   for (int id : ally_ids)

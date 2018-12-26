@@ -39,6 +39,7 @@ class Simulation {
   int sim_tick = 0;
   double delta_time;
   model::Rules rules;
+  model::Arena arena;
 public:
   Entity ball;
   Entity ball_col;

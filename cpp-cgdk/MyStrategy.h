@@ -35,6 +35,7 @@ public:
   // std::vector<Role> roles = {GUARD};
 
   void act(const model::Robot& me, const model::Rules& rules, const model::Game& game, model::Action& action) override;
+  bool goal_scored(double z);
   bool is_duplicate_target(const Vec2D &target_pos, const Vec2D &delta_pos, int id, const std::vector<model::Robot> &robots);
   void set_action(model::Action &action, int id, const Vec3D &target_position, const Vec3D &target_velocity, double jump_speed, bool use_nitro);
 

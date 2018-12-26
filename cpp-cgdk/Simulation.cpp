@@ -36,6 +36,7 @@ Simulation::Simulation(const Ball &ball,
     });
   }
   this->rules = rules;
+  this->arena = rules.arena;
   this->delta_time = delta_time;
 }
 
@@ -191,214 +192,214 @@ DaN Simulation::dan_to_arena_quarter(const Vec3D &point) {
   DaN dan = dan_to_plane(point, Vec3D(0.0, 0.0, 0.0), Vec3D(0.0, 0.0, 1.0));
 
   // Ceiling
-  dan = std::min(dan, dan_to_plane(point, Vec3D(0, 0, rules.arena.height), Vec3D(0, 0, -1)));
+  dan = std::min(dan, dan_to_plane(point, Vec3D(0, 0, arena.height), Vec3D(0, 0, -1)));
 
   // Side x
-  dan = std::min(dan, dan_to_plane(point, Vec3D(rules.arena.width/2.0, 0, 0), Vec3D(-1, 0, 0)));
+  dan = std::min(dan, dan_to_plane(point, Vec3D(arena.width/2.0, 0, 0), Vec3D(-1, 0, 0)));
 
   // Side z (back of goal)
-  dan = std::min(dan, dan_to_plane(point, Vec3D(0, rules.arena.depth/2.0 + rules.arena.goal_depth, 0), Vec3D(0, -1, 0)));
+  dan = std::min(dan, dan_to_plane(point, Vec3D(0, arena.depth/2.0 + arena.goal_depth, 0), Vec3D(0, -1, 0)));
 
   // Side z
   Vec2D v = Vec2D(point.x, point.y) - Vec2D(
-    (rules.arena.goal_width / 2.0 - rules.arena.goal_top_radius),
-    (rules.arena.goal_height / 2.0 - rules.arena.goal_top_radius)
+    (arena.goal_width / 2.0 - arena.goal_top_radius),
+    (arena.goal_height - arena.goal_top_radius)
   );
-  if (point.x >= rules.arena.goal_width / 2.0 + rules.arena.goal_side_radius or
-      point.y >= rules.arena.goal_height + rules.arena.goal_side_radius or (
+  if (point.x >= arena.goal_width / 2.0 + arena.goal_side_radius or
+      point.y >= arena.goal_height + arena.goal_side_radius or (
         v.x > 0 and
         v.z > 0 and
-        v.len() >= rules.arena.goal_top_radius + rules.arena.goal_side_radius)){
-    dan = std::min(dan, dan_to_plane(point, Vec3D(0, rules.arena.depth/2.0, 0), Vec3D(0, -1, 0)));
+        v.len() >= arena.goal_top_radius + arena.goal_side_radius)){
+    dan = std::min(dan, dan_to_plane(point, Vec3D(0, arena.depth/2.0, 0), Vec3D(0, -1, 0)));
   }
 
   // Side x & ceiling (goal)
-  if (point.z >= (rules.arena.depth / 2.0) + rules.arena.goal_side_radius) {
+  if (point.z >= arena.depth / 2.0 + arena.goal_side_radius) {
     // x
-    dan = std::min(dan, dan_to_plane(point, Vec3D(rules.arena.goal_width/2.0, 0, 0), Vec3D(-1, 0, 0)));
+    dan = std::min(dan, dan_to_plane(point, Vec3D(arena.goal_width/2.0, 0, 0), Vec3D(-1, 0, 0)));
     // y
-    dan = std::min(dan, dan_to_plane(point, Vec3D(0, 0, rules.arena.goal_height), Vec3D(0, 0, -1)));
+    dan = std::min(dan, dan_to_plane(point, Vec3D(0, 0, arena.goal_height), Vec3D(0, 0, -1)));
   }
 
   // goal back corners
-  if (point.z > rules.arena.depth/2.0 + rules.arena.goal_depth - rules.arena.bottom_radius) {
+  if (point.z > arena.depth/2.0 + arena.goal_depth - arena.bottom_radius) {
     dan = std::min(
       dan,
       dan_to_sphere_inner(
         point,
         Vec3D(
-          clamp(point.x, rules.arena.bottom_radius - rules.arena.goal_width/2.0, rules.arena.goal_width/2.0 - rules.arena.bottom_radius),
-          (rules.arena.depth / 2.0) + rules.arena.goal_depth - rules.arena.bottom_radius,
-          clamp(point.y, rules.arena.bottom_radius, rules.arena.goal_height - rules.arena.goal_top_radius)
+          clamp(point.x, arena.bottom_radius - arena.goal_width/2.0, arena.goal_width/2.0 - arena.bottom_radius),
+          (arena.depth / 2.0) + arena.goal_depth - arena.bottom_radius,
+          clamp(point.y, arena.bottom_radius, arena.goal_height - arena.goal_top_radius)
         ),
-        rules.arena.bottom_radius
+        arena.bottom_radius
       )
     );
   }
 
   // Corner
-  if (point.x > rules.arena.width/2.0 - rules.arena.corner_radius and
-      point.z > rules.arena.depth/2.0 - rules.arena.corner_radius) {
+  if (point.x > arena.width/2.0 - arena.corner_radius and
+      point.z > arena.depth/2.0 - arena.corner_radius) {
     dan = std::min(
       dan,
       dan_to_sphere_inner(
         point,
         Vec3D(
-          rules.arena.width/2.0 - rules.arena.corner_radius,
-          rules.arena.depth/2.0 - rules.arena.corner_radius,
+          arena.width/2.0 - arena.corner_radius,
+          arena.depth/2.0 - arena.corner_radius,
           point.y
         ),
-        rules.arena.corner_radius
+        arena.corner_radius
       )
     );
   }
 
   // Goal outer corner
-  if (point.z < rules.arena.depth/2.0 + rules.arena.goal_side_radius) {
+  if (point.z < arena.depth/2.0 + arena.goal_side_radius) {
     // Side x
-    if (point.x < rules.arena.goal_width/2.0 + rules.arena.goal_side_radius) {
+    if (point.x < arena.goal_width/2.0 + arena.goal_side_radius) {
       dan = std::min(
         dan,
         dan_to_sphere_outer(
           point,
           Vec3D(
-            rules.arena.goal_width/2.0 + rules.arena.goal_side_radius,
-            rules.arena.depth/2.0 + rules.arena.goal_side_radius,
+            arena.goal_width/2.0 + arena.goal_side_radius,
+            arena.depth/2.0 + arena.goal_side_radius,
             point.y
           ),
-          rules.arena.goal_side_radius
+          arena.goal_side_radius
         )
       );
     }
     // Ceiling
-    if (point.y < rules.arena.goal_height + rules.arena.goal_side_radius) {
+    if (point.y < arena.goal_height + arena.goal_side_radius) {
       dan = std::min(
         dan,
         dan_to_sphere_outer(
           point,
           Vec3D(
             point.x,
-            rules.arena.depth/2.0 + rules.arena.goal_side_radius,
-            rules.arena.goal_height + rules.arena.goal_side_radius
+            arena.depth/2.0 + arena.goal_side_radius,
+            arena.goal_height + arena.goal_side_radius
           ),
-          rules.arena.goal_side_radius
+          arena.goal_side_radius
         )
       );
     }
     // Top corner
     Vec2D o = {
-      rules.arena.goal_width/2.0 - rules.arena.goal_top_radius,
-      rules.arena.goal_height - rules.arena.goal_top_radius
+      arena.goal_width/2.0 - arena.goal_top_radius,
+      arena.goal_height - arena.goal_top_radius
     };
     v = Vec2D(point.x, point.y) - o;
     if (v.x > 0 and v.z > 0) {
-      o += v.normalize() * (rules.arena.goal_top_radius + rules.arena.goal_side_radius);
+      o += v.normalize() * (arena.goal_top_radius + arena.goal_side_radius);
       dan = std::min(
         dan,
         dan_to_sphere_outer(
           point,
           Vec3D(
             o.x,
-            rules.arena.depth/2.0 + rules.arena.goal_side_radius,
+            arena.depth/2.0 + arena.goal_side_radius,
             o.z
           ),
-          rules.arena.goal_side_radius
+          arena.goal_side_radius
         )
       );
     }
   }
 
   // Goal inside top corners
-  if (point.z > rules.arena.depth/2.0 + rules.arena.goal_side_radius and
-      point.y > rules.arena.goal_height - rules.arena.goal_top_radius) {
+  if (point.z > arena.depth/2.0 + arena.goal_side_radius and
+      point.y > arena.goal_height - arena.goal_top_radius) {
     // Side x
-    if (point.x > rules.arena.goal_width/2.0 - rules.arena.goal_top_radius) {
+    if (point.x > arena.goal_width/2.0 - arena.goal_top_radius) {
       dan = std::min(
         dan,
         dan_to_sphere_inner(
           point,
           Vec3D(
-            rules.arena.goal_width/2 - rules.arena.goal_top_radius,
+            arena.goal_width/2.0 - arena.goal_top_radius,
             point.z,
-            rules.arena.goal_height - rules.arena.goal_top_radius
+            arena.goal_height - arena.goal_top_radius
           ),
-          rules.arena.goal_top_radius
+          arena.goal_top_radius
         )
       );
     }
     // Side z
-    if (point.z > rules.arena.depth/2 + rules.arena.goal_depth - rules.arena.goal_top_radius) {
+    if (point.z > arena.depth/2.0 + arena.goal_depth - arena.goal_top_radius) {
       dan = std::min(
         dan,
         dan_to_sphere_inner(
           point,
           Vec3D(
             point.x,
-            rules.arena.depth/2 + rules.arena.goal_depth - rules.arena.goal_top_radius,
-            rules.arena.goal_height - rules.arena.goal_top_radius
+            arena.depth/2 + arena.goal_depth - arena.goal_top_radius,
+            arena.goal_height - arena.goal_top_radius
           ),
-          rules.arena.goal_top_radius
+          arena.goal_top_radius
         )
       );
     }
   }
 
   // Bottom corners
-  if (point.y < rules.arena.bottom_radius) {
+  if (point.y < arena.bottom_radius) {
     // Side x
-    if (point.x > rules.arena.width/2 - rules.arena.bottom_radius) {
+    if (point.x > arena.width/2.0 - arena.bottom_radius) {
       dan = std::min(
         dan,
         dan_to_sphere_inner(
           point,
           Vec3D(
-            rules.arena.width/2 - rules.arena.bottom_radius,
+            arena.width/2 - arena.bottom_radius,
             point.z,
-            rules.arena.bottom_radius
+            arena.bottom_radius
           ),
-          rules.arena.bottom_radius
+          arena.bottom_radius
         )
       );
     }
     // Side z
-    if (point.z > rules.arena.depth/2 - rules.arena.bottom_radius and
-        point.x >= rules.arena.goal_width/2 + rules.arena.goal_side_radius) {
+    if (point.z > arena.depth/2.0 - arena.bottom_radius and
+        point.x >= arena.goal_width/2.0 + arena.goal_side_radius) {
       dan = std::min(
         dan,
         dan_to_sphere_inner(
           point,
           Vec3D(
             point.x,
-            rules.arena.depth/2 - rules.arena.bottom_radius,
-            rules.arena.bottom_radius
+            arena.depth/2.0 - arena.bottom_radius,
+            arena.bottom_radius
           ),
-          rules.arena.bottom_radius
+          arena.bottom_radius
         )
       );
     }
     // Side z (goal)
-    if (point.z > rules.arena.depth/2 + rules.arena.goal_depth - rules.arena.bottom_radius) {
+    if (point.z > arena.depth/2.0 + arena.goal_depth - arena.bottom_radius) {
       dan = std::min(
         dan,
         dan_to_sphere_inner(
           point,
           Vec3D(
             point.x,
-            rules.arena.depth/2 + rules.arena.goal_depth - rules.arena.bottom_radius,
-            rules.arena.bottom_radius
+            arena.depth/2.0 + arena.goal_depth - arena.bottom_radius,
+            arena.bottom_radius
           ),
-          rules.arena.bottom_radius
+          arena.bottom_radius
         )
       );
     }
     // Goal outer corner
     Vec2D o = {
-      rules.arena.goal_width/2 + rules.arena.goal_side_radius,
-      rules.arena.depth/2 + rules.arena.goal_side_radius
+      arena.goal_width/2.0 + arena.goal_side_radius,
+      arena.depth/2.0 + arena.goal_side_radius
     };
     Vec2D v = Vec2D(point.x, point.z) - o;
-    if (v.x < 0 and v.z < 0 and v.len() < rules.arena.goal_side_radius + rules.arena.bottom_radius) {
-      o += v.normalize() * (rules.arena.goal_side_radius + rules.arena.bottom_radius);
+    if (v.x < 0 and v.z < 0 and v.len() < arena.goal_side_radius + arena.bottom_radius) {
+      o += v.normalize() * (arena.goal_side_radius + arena.bottom_radius);
       dan = std::min(
         dan,
         dan_to_sphere_inner(
@@ -406,40 +407,40 @@ DaN Simulation::dan_to_arena_quarter(const Vec3D &point) {
           Vec3D(
             o.x,
             o.z,
-            rules.arena.bottom_radius
+            arena.bottom_radius
           ),
-          rules.arena.bottom_radius
+          arena.bottom_radius
         )
       );
     }
     // Side x (goal)
-    if (point.z >= rules.arena.depth/2 + rules.arena.goal_side_radius and
-        point.x > rules.arena.goal_width/2 - rules.arena.bottom_radius) {
+    if (point.z >= arena.depth/2.0 + arena.goal_side_radius and
+        point.x > arena.goal_width/2.0 - arena.bottom_radius) {
       dan = std::min(
         dan,
         dan_to_sphere_inner(
           point,
           Vec3D(
-            rules.arena.goal_width/2 - rules.arena.bottom_radius,
+            arena.goal_width/2.0 - arena.bottom_radius,
             point.z,
-            rules.arena.bottom_radius
+            arena.bottom_radius
           ),
-          rules.arena.bottom_radius
+          arena.bottom_radius
         )
       );
     }
     // corner
-    if (point.x > rules.arena.width/2 - rules.arena.corner_radius and
-        point.z > rules.arena.depth/2 - rules.arena.corner_radius) {
+    if (point.x > arena.width/2.0 - arena.corner_radius and
+        point.z > arena.depth/2.0 - arena.corner_radius) {
       Vec2D corner_o = {
-        rules.arena.width/2 - rules.arena.corner_radius,
-        rules.arena.depth/2 - rules.arena.corner_radius
+        arena.width/2.0 - arena.corner_radius,
+        arena.depth/2.0 - arena.corner_radius
       };
       Vec2D n = Vec2D(point.x, point.z) - corner_o;
       double dist = n.len();
-      if (dist > rules.arena.corner_radius - rules.arena.bottom_radius) {
+      if (dist > arena.corner_radius - arena.bottom_radius) {
         n *= 1/dist;
-        Vec2D o2 = corner_o + n * (rules.arena.corner_radius - rules.arena.bottom_radius);
+        Vec2D o2 = corner_o + n * (arena.corner_radius - arena.bottom_radius);
         dan = std::min(
           dan,
           dan_to_sphere_inner(
@@ -447,9 +448,9 @@ DaN Simulation::dan_to_arena_quarter(const Vec3D &point) {
             Vec3D(
               o2.x,
               o2.z,
-              rules.arena.bottom_radius
+              arena.bottom_radius
             ),
-            rules.arena.bottom_radius
+            arena.bottom_radius
           )
         );
       }
@@ -457,48 +458,48 @@ DaN Simulation::dan_to_arena_quarter(const Vec3D &point) {
   }
 
   // Ceiling corners
-  if (point.y > rules.arena.height - rules.arena.top_radius) {
+  if (point.y > arena.height - arena.top_radius) {
     // Side x
-    if (point.x > rules.arena.width/2 - rules.arena.top_radius) {
+    if (point.x > arena.width/2.0 - arena.top_radius) {
       dan = std::min(
         dan,
         dan_to_sphere_inner(
           point,
           Vec3D(
-            rules.arena.width/2 - rules.arena.top_radius,
+            arena.width/2.0 - arena.top_radius,
             point.z,
-            rules.arena.height - rules.arena.top_radius
+            arena.height - arena.top_radius
           ),
-          rules.arena.top_radius
+          arena.top_radius
         )
       );
     }
     // Side z
-    if (point.z > rules.arena.depth/2 - rules.arena.top_radius) {
+    if (point.z > arena.depth/2.0 - arena.top_radius) {
       dan = std::min(
         dan,
         dan_to_sphere_inner(
           point,
           Vec3D(
             point.x,
-            rules.arena.depth/2 - rules.arena.top_radius,
-            rules.arena.height - rules.arena.top_radius
+            arena.depth/2.0 - arena.top_radius,
+            arena.height - arena.top_radius
           ),
-          rules.arena.top_radius
+          arena.top_radius
         )
       );
     }
-    // Side Corner
-    if (point.x > rules.arena.width/2 - rules.arena.corner_radius and
-        point.z > rules.arena.depth/2 - rules.arena.corner_radius) {
+    // Corner
+    if (point.x > arena.width/2.0 - arena.corner_radius and
+        point.z > arena.depth/2.0 - arena.corner_radius) {
       Vec2D corner_o = {
-        rules.arena.width/2 - rules.arena.corner_radius,
-        rules.arena.depth/2 - rules.arena.corner_radius
+        arena.width/2.0 - arena.corner_radius,
+        arena.depth/2.0 - arena.corner_radius
       };
       Vec2D dv = Vec2D(point.x, point.z) - corner_o;
-      if (dv.len() > rules.arena.corner_radius - rules.arena.top_radius) {
+      if (dv.len() > arena.corner_radius - arena.top_radius) {
         Vec2D n = dv.normalize();
-        Vec2D o2 = corner_o + n * (rules.arena.corner_radius - rules.arena.top_radius);
+        Vec2D o2 = corner_o + n * (arena.corner_radius - arena.top_radius);
         dan = std::min(
           dan,
           dan_to_sphere_inner(
@@ -506,9 +507,9 @@ DaN Simulation::dan_to_arena_quarter(const Vec3D &point) {
               Vec3D (
                 o2.x,
                 o2.z,
-                rules.arena.height - rules.arena.top_radius
+                arena.height - arena.top_radius
               ),
-              rules.arena.top_radius
+              arena.top_radius
           )
         );
       }
