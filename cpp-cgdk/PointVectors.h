@@ -38,6 +38,7 @@ struct Vec3D {
   double y {0.0};
   Vec3D() {}
   Vec3D(double x, double z, double y) : x(x), z(z), y(y) { }
+  Vec3D(const Vec2D &plane, double y) : x(plane.x), z(plane.z), y(y) { }
   void set(double _x, double _z, double _y) { x=_x; z=_z; y=_y; }
   void clamp(double val) {
     this->x = std::min(this->x, val);
