@@ -26,6 +26,7 @@ struct Entity {
   //  0 for the ball
   //  1 for allies
   EntityType type;
+  int id = 0;
   int last_sim_jump = -1;
 };
 
@@ -42,7 +43,7 @@ class Simulation {
   model::Arena arena;
 public:
   Entity ball;
-  Entity ball_col;
+  Entity ball_spec;
   std::vector<Entity> robots;
 
   Simulation(const model::Ball &ball,

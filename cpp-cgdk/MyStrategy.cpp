@@ -4,283 +4,169 @@ using namespace model;
 
 MyStrategy::MyStrategy() { }
 
-const double SIMULATION_DURATION = 5;
-const double SIMULATION_PRECISION = 1/60.0;
-
 void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Action& action) {
-  if (game.current_tick == 0) {
-    std::cout<<"START!\n";
-
-    DEFENSE_BORDER = -rules.arena.depth / 6.0;
-    CRITICAL_BORDER = -(rules.arena.depth/2.0 - rules.arena.top_radius);
-    this->rules = rules;
-
-    // get IDs of allies
-    for (Robot robot : game.robots)
-      if (robot.is_teammate)
-        ally_ids.push_back(robot.id);
-
-    // fix target_positions
-    for (int i = 0; i < int(game.robots.size()); ++i) {
-      target_positions.push_back(Vec3D());
-      target_velocities.push_back(Vec3D());
-      jump_speeds.push_back(0.0);
-      robot_positions.push_back(Vec3D());
-      roles.push_back(DEFAULT);
-    }
-  }
-
+  if (game.current_tick == 0 and not this->initialized)
+    this->init_strategy(rules, game);
 
   Vec2D my_position_2d = {me.x, me.z};
   Vec3D my_position_3d = {my_position_2d, me.y};
-  Vec3D ball_position = {game.ball.x, game.ball.z, game.ball.y};
+  Vec2D ball_position_2d = {game.ball.x, game.ball.z};
+  Vec3D ball_position_3d = {ball_position_2d, game.ball.y};
 
-  robot_positions[me.id] = my_position_3d;
+  this->robot_positions[me.id] = my_position_3d;
 
   // Recalculate the predictions of the ball's path on new tick
-  if (prev_tick != game.current_tick) {
-    is_start_of_round = Vec2D(game.ball.x, game.ball.z).len() < rules.BALL_RADIUS;
+  if (this->prev_tick != game.current_tick) {
+    this->is_start_of_round = ball_position_2d.len() < rules.BALL_RADIUS;
 
     if (game.current_tick % 100 == 0)
       std::cout<<game.current_tick<<"\n";
 
-    predicted_ball_positions = {ball_position};
-    predicted_ball_col_positions = {ball_position};
-    predicted_robot_positions = {{}};
-    for (Robot robot : game.robots) {
-      predicted_robot_positions.back().push_back({
-        robot.x, robot.z, robot.y
-      });
-    }
+    this->run_simulation(game);
 
-    Simulation sim(game.ball,
-                   game.robots,
-                   target_velocities,
-                   jump_speeds,
-                   rules,
-                   SIMULATION_PRECISION);
-    for(int i = 1; i <= SIMULATION_DURATION/SIMULATION_PRECISION; ++i) {
-      sim.update();
-      predicted_ball_positions.push_back(sim.ball.position);
-      predicted_ball_col_positions.push_back(sim.ball_col.position);
-      if (i % 6 == 0 and 2*i <= SIMULATION_DURATION/SIMULATION_PRECISION) {
-        predicted_robot_positions.push_back({});
-        for (Entity robot : sim.robots)
-          predicted_robot_positions.back().push_back(robot.position);
-      }
-    }
-    prev_tick = game.current_tick;
+    this->prev_tick = game.current_tick;
   }
 
-  // The strategy only plays on the ground
-  // So, if we are not touching the ground, use nitro
-  // to go back as soon as possible
-  if (!me.touch) {
-    set_action(
-      action,
-      me.id,
-      Vec3D(me.x, me.z, 0.0),
-      Vec3D(0.0, 0.0, -rules.MAX_ENTITY_SPEED),
-      0.0,
-      true
-    );
-    // return
-  }
+  Target attack = calc_intercept_spot(projected_ball_path, my_position_2d);
+  Target attack_spec = calc_intercept_spot(
+    projected_ball_spec_path,
+    my_position_2d,
+    true,
+    projected_ball_path);
+  Target cross = calc_defend_spot(projected_ball_path, my_position_2d);
+  Target cross_spec = calc_defend_spot(projected_ball_spec_path, my_position_2d);
+  Target default_strat = get_default_strat(my_position_2d, ball_position_2d);
+
+  roles[me.id] = calc_role(
+    me.id,
+    my_position_3d,
+    ball_position_3d,
+    game.robots,
+    attack,
+    attack_spec,
+    cross,
+    cross_spec);
 
 
-  double dist_to_ball = (my_position_3d - ball_position).len();
+  Vec2D target_position;
+  Vec2D target_velocity;
 
-  // Lets jump if we would hit the ball, and
-  // we are on the same side of the ball as out net, so
-  // the ball would go into opponent's side of the arena
-  bool jump = ((dist_to_ball < rules.BALL_RADIUS + 2*rules.ROBOT_MAX_RADIUS) and
-               (me.z < game.ball.z));
-
-
-  // Since there are multiple robots in out team lets determine out role - attacker or defender
-
-  // This robot is automatically an attacker if it is alone
-  bool is_attacker = (game.robots.size() == 2);
-
-  // We will be attacker if there is friendly robot closer
-  // to out net than current one.
-  for (const model::Robot &robot : game.robots)
-    if (robot.is_teammate and robot.id != me.id and robot.z < me.z)
-      is_attacker = true;
-
-  roles[me.id] = (is_attacker ? ATTACKER : DEFENDER);
-
-  // The defender automatically becomes an attacker when the ball reaches
-  // 1/3 of the arena from our goal
-  if (!is_attacker and game.ball.z <= DEFENSE_BORDER) {
-    is_attacker = true;
-    roles[me.id] = AGGRESSIVE_DEFENDER;
-  }
-
-  // At the start of the round, 2 robots must attack the ball
-  if (is_start_of_round and game.robots.size() == 4) {
-    if (!is_attacker and dist_to_ball < rules.BALL_RADIUS + 4*rules.ROBOT_MAX_RADIUS)
-      jump = true;
-    is_attacker = true;
-    roles[me.id] = ATTACKER;
-  }
-
-
-  if (is_attacker) {
-    if (me.z < CRITICAL_BORDER)
-      jump = ((dist_to_ball < rules.BALL_RADIUS + 4*rules.ROBOT_MAX_RADIUS) and
-                   (me.z < game.ball.z));
-
-    // Attacker strategy
-    Vec2D attack_position;
-    Vec2D attack_velocity;
-    if (find_intercept_spot(predicted_ball_positions,
-                            my_position_2d,
-                            attack_position,
-                            attack_velocity)) {
-      set_action(
-        action,
-        me.id,
-        Vec3D(attack_position, 0.0),
-        Vec3D(attack_velocity, 0.0),
-        (jump ? rules.ROBOT_MAX_JUMP_SPEED : 0.0),
-        false
-      );
-      // If a robot already is headed there and it is closer, then discard this
-      // However, if it is just the start of the round, don't check this
-      if ((is_start_of_round or
-           !is_duplicate_target(attack_position, my_position_2d, me.id, game.robots)) and
-          !(roles[me.id] == AGGRESSIVE_DEFENDER and attack_position.z > DEFENSE_BORDER)) {
-        return;
-      }
-    }
-  }
-
-  // Defender's strategy (or attacker's who did not find good moment):
-  roles[me.id] = DEFENDER;
-  // Standing in the middle of out net
-  Vec2D defend_position(0.0, -(rules.arena.depth/2.0) - rules.BALL_RADIUS);
-
-  // Find time and place where ball crosses the net line
-  // If this place is inside the net
-  // Go defend there
-  bool ball_might_cross = false;
-  double t = EPS;
-  for (int i = 1; i < int(predicted_ball_positions.size()); ++i) {
-    if (goal_scored(predicted_ball_positions[i].z))
+  switch (roles[me.id]) {
+    case ATTACKER:
+    case INIT_JUMPER:
+    case AGGRESSIVE_DEFENDER:
+      target_position = attack.position;
+      target_velocity = attack.velocity;
       break;
-    t = i * SIMULATION_PRECISION;
-    if (predicted_ball_positions[i].z <= -rules.arena.depth/2.0) {
-      ball_might_cross = true;
-      defend_position.x = predicted_ball_positions[i].x;
+    case DEFENDER:
+      target_position = cross.position;
+      target_velocity = cross.velocity;
       break;
-    }
-  }
-  if (!ball_might_cross) {
-    t = EPS;
-    for (int i = 1; i < int(predicted_ball_col_positions.size()); ++i) {
-      if (goal_scored(predicted_ball_col_positions[i].z))
-        break;
-      t = i * SIMULATION_PRECISION;
-      if (predicted_ball_col_positions[i].z <= -rules.arena.depth/2.0) {
-        ball_might_cross = true;
-        defend_position.x = predicted_ball_col_positions[i].x;
-        roles[me.id] = SPECULATIVE_DEFENDER;
-        break;
-      }
-    }
-  }
-
-  // go to the target position ASAP
-  Vec2D defend_velocity = (defend_position - my_position_2d) *
-                          rules.ROBOT_MAX_GROUND_SPEED;
-
-  // if the defender is already inside the net,
-  // then just slowly go to the target position
-  Vec2D delta_pos = defend_position - my_position_2d;
-  double need_speed = delta_pos.len() / t;
-
-  Vec2D needed_velocity = delta_pos.normalize() * need_speed;
-  if (ball_might_cross and me.z < CRITICAL_BORDER)
-    defend_velocity = needed_velocity;
-
-  // TODO: FIX THIS LATER
-  jump = ((dist_to_ball < rules.BALL_RADIUS + 4*rules.ROBOT_MAX_RADIUS) and
-               (me.z < game.ball.z));
+    case SPECULATIVE_DEFENDER:
+      target_position = cross_spec.position;
+      target_velocity = cross_spec.velocity;
+      break;
+    case SPECULATIVE_ATTACKER:
+      target_position = attack_spec.position;
+      target_velocity = attack_spec.velocity;
+      break;
+    case DEFAULT:
+      target_position = default_strat.position;
+      target_velocity = default_strat.velocity;
+      break;
+    default:
+      break;
+  };
 
   set_action(
     action,
     me.id,
-    Vec3D(defend_position, 0.0),
-    Vec3D(defend_velocity, 0.0),
-    (jump ? rules.ROBOT_MAX_JUMP_SPEED : 0.0),
-    false
-  );
-
-  if (!is_duplicate_target(defend_position, my_position_2d, me.id, game.robots))
-    return;
-
-
-  // Speculative strategy
-  roles[me.id] = SPECULATIVE_ATTACKER;
-  Vec2D specul_position;
-  Vec2D specul_velocity;
-  if (find_intercept_spot(predicted_ball_col_positions,
-                          my_position_2d,
-                          specul_position,
-                          specul_velocity,
-                          true,
-                          predicted_ball_positions)) {
-    set_action(
-      action,
-      me.id,
-      Vec3D(specul_position, 0.0),
-      Vec3D(specul_velocity, 0.0),
-      (jump ? rules.ROBOT_MAX_JUMP_SPEED : 0.0),
-      false
-    );
-    if (!is_duplicate_target(specul_position, my_position_2d, me.id, game.robots))
-      return;
-  }
-
-  // Default
-  roles[me.id] = DEFAULT;
-  // TODODODODODOD: KNOCK OFF OPPONENTS
-  Vec2D default_position(ball_position.x, -rules.arena.depth/2.0);
-  Vec2D default_velocity = (default_position - my_position_2d) *
-                            rules.ROBOT_MAX_GROUND_SPEED;
-  set_action(
-    action,
-    me.id,
-    Vec3D(default_position, 0.0),
-    Vec3D(default_velocity, 0.0),
-    (jump ? rules.ROBOT_MAX_JUMP_SPEED : 0.0),
+    Vec3D(target_position, 0.0),
+    Vec3D(target_velocity, 0.0),
+    calc_jump_speed(my_position_3d, ball_position_3d, roles[me.id]),
     false
   );
 }
 
-bool MyStrategy::find_intercept_spot(const std::vector<Vec3D> &predicted_ball_path,
-                                     const Vec2D &my_position,
-                                     Vec2D &target_position,
-                                     Vec2D &target_velocity,
-                                     const bool &is_speculative,
-                                     const std::vector<Vec3D> &avoid_path) {
-  for (int i = 1; i < int(predicted_ball_path.size()); ++i) {
-    if (goal_scored(predicted_ball_path[i].z))
+void MyStrategy::init_strategy(
+    const model::Rules &rules,
+    const model::Game &game) {
+  std::cout<<"START!\n";
+
+  this->DEFENSE_BORDER = -rules.arena.depth / 6.0;
+  this->CRITICAL_BORDER = -(rules.arena.depth/2.0 - rules.arena.top_radius);
+  this->rules = rules;
+
+  // get IDs of allies
+  for (Robot robot : game.robots)
+    if (robot.is_teammate)
+      this->ally_ids.push_back(robot.id);
+
+  // fix target_positions
+  for (int i = 0; i < int(game.robots.size()); ++i) {
+    this->target_positions.push_back(Vec3D());
+    this->target_velocities.push_back(Vec3D());
+    this->jump_speeds.push_back(0.0);
+    this->robot_positions.push_back(Vec3D());
+    this->roles.push_back(DEFAULT);
+  }
+
+  this->initialized = true;
+}
+
+void MyStrategy::run_simulation(const model::Game &game) {
+  Vec3D ball_position_3d = {game.ball.x, game.ball.z, game.ball.y};
+
+  // initiate projections
+  projected_ball_path = {ball_position_3d};
+  projected_ball_spec_path = {ball_position_3d};
+  projected_robot_paths = std::vector<std::vector<Vec3D>>(game.robots.size()+1);
+  for (Robot robot : game.robots) {
+    projected_robot_paths[robot.id].push_back({
+      robot.x, robot.z, robot.y
+    });
+  }
+
+  Simulation sim(game.ball,
+                 game.robots,
+                 target_velocities,
+                 jump_speeds,
+                 rules,
+                 SIMULATION_PRECISION);
+  for(int i = 1; i <= SIMULATION_DURATION/SIMULATION_PRECISION; ++i) {
+    sim.update();
+    projected_ball_path.push_back(sim.ball.position);
+    projected_ball_spec_path.push_back(sim.ball_spec.position);
+    for (Entity robot : sim.robots)
+      projected_robot_paths[robot.id].push_back(robot.position);
+  }
+}
+
+Target MyStrategy::calc_intercept_spot(
+    const std::vector<Vec3D> &ball_path,
+    const Vec2D &my_position,
+    const bool &is_speculative,
+    const std::vector<Vec3D> &avoid_path) {
+
+  Vec2D target_position;
+  Vec2D target_velocity;
+
+  for (int i = 1; i < int(ball_path.size()); ++i) {
+    if (goal_scored(ball_path[i].z))
       break;
-    if (is_speculative and (predicted_ball_path[i] - avoid_path[i]).len() < rules.BALL_RADIUS)
+    if (is_speculative and (ball_path[i] - avoid_path[i]).len() < rules.BALL_RADIUS)
       continue;
 
     double t = i * SIMULATION_PRECISION;
 
-    target_position.x = predicted_ball_path[i].x;
-    target_position.z = predicted_ball_path[i].z - 1.5 * rules.ROBOT_RADIUS;
+    target_position.x = ball_path[i].x;
+    target_position.z = ball_path[i].z - 1.5 * rules.ROBOT_RADIUS;
 
     // If ball will not leave arena boundary
     // (collision with the arena would happen, but we are not considering it),
     // and the ball will be closer to opponent's net than the robot,
     if (target_position.z > my_position.z and
-        predicted_ball_path[i].y <= 4*rules.ROBOT_RADIUS) {
+        ball_path[i].y <= 4*rules.ROBOT_RADIUS) {
       // Compute the speed robot needs to run with
       // To be at ball's location at the same time as the ball
       Vec2D delta_pos = target_position - my_position;
@@ -290,11 +176,116 @@ bool MyStrategy::find_intercept_spot(const std::vector<Vec3D> &predicted_ball_pa
       if (0.5 * rules.ROBOT_MAX_GROUND_SPEED < need_speed and
           need_speed < rules.ROBOT_MAX_GROUND_SPEED) {
         target_velocity = delta_pos.normalize() * need_speed;
-        return true;
+        return {true, target_position, target_velocity};
       }
     }
   }
-  return false;
+  return {false, Vec2D(), Vec2D()};
+}
+
+Target MyStrategy::calc_defend_spot(
+    const std::vector<Vec3D> &ball_path,
+    const Vec2D &my_position) {
+
+  Vec2D target_position(0.0, -(rules.arena.depth/2.0 + rules.BALL_RADIUS));
+  Vec2D target_velocity = (target_position - my_position) *
+                          rules.ROBOT_MAX_GROUND_SPEED;
+
+  for (int i = 1; i < int(ball_path.size()); ++i) {
+    if (goal_scored(ball_path[i].z))
+      break;
+
+    double t = i * SIMULATION_PRECISION;
+
+    if (ball_path[i].z <= -rules.arena.depth/2.0) {
+      target_position.x = ball_path[i].x;
+      Vec2D delta_pos = target_position - my_position;
+      double need_speed = delta_pos.len() / t;
+      target_velocity = delta_pos.normalize() * need_speed;
+      return {true, target_position, target_velocity};
+    }
+  }
+  return {true, target_position, target_velocity};
+}
+
+Target MyStrategy::get_default_strat(
+    const Vec2D &my_position,
+    const Vec2D &ball_position) {
+  Vec2D target_position(ball_position.x, -rules.arena.depth/2.0);
+  Vec2D target_velocity = (target_position - my_position) *
+                           rules.ROBOT_MAX_GROUND_SPEED;
+  return {true, target_position, target_velocity};
+}
+
+Role MyStrategy::calc_role(
+    const int &id,
+    const Vec3D &my_position,
+    const Vec3D &ball_position,
+    const std::vector<Robot> &robots,
+    const Target &attack,
+    const Target &attack_spec,
+    const Target &cross,
+    const Target &cross_spec) {
+  Vec2D my_pos_2d = {my_position.x, my_position.z};
+
+  // The robot is a defender by default
+  Role role = (robots.size() == 2 ? ATTACKER : DEFENDER);
+
+  // The robot will be an attacker if there already is a robot closer to the net
+  // than the current one.
+  for (int ally_id : ally_ids)
+    if (ally_id != id and robot_positions[ally_id].z < my_position.z)
+      role = ATTACKER;
+
+  if (role == DEFENDER and
+      attack.exists and
+      attack.position.z <= DEFENSE_BORDER)
+    role = AGGRESSIVE_DEFENDER;
+
+  if (role == DEFENDER and is_start_of_round and robots.size() == 4)
+    role = INIT_JUMPER;
+
+  if (attack.exists and (role == ATTACKER or
+                         role == AGGRESSIVE_DEFENDER or
+                         role == INIT_JUMPER)) {
+    if (is_start_of_round or
+        !is_duplicate_target(attack.position, my_pos_2d, id, robots))
+      return role;
+  }
+
+  if (!is_duplicate_target(cross.position, my_pos_2d, id, robots))
+    return DEFENDER;
+
+  if (!is_duplicate_target(cross_spec.position, my_pos_2d, id, robots))
+    return SPECULATIVE_DEFENDER;
+
+  if (attack_spec.exists and
+      !is_duplicate_target(attack_spec.position, my_pos_2d, id, robots))
+    return SPECULATIVE_ATTACKER;
+
+  return DEFAULT;
+}
+
+double MyStrategy::calc_jump_speed(
+    const Vec3D &my_position,
+    const Vec3D &ball_position,
+    const Role &role) {
+  double dist_to_ball = (my_position - ball_position).len();
+
+  double jump_dist_factor = 2;
+  if (role == INIT_JUMPER or
+      role == AGGRESSIVE_DEFENDER or
+      role == DEFENDER or
+      role == SPECULATIVE_DEFENDER or
+      my_position.z < CRITICAL_BORDER)
+    jump_dist_factor = 4;
+
+  double acceptable_dist = rules.BALL_RADIUS + jump_dist_factor*rules.ROBOT_MAX_RADIUS;
+
+  if (my_position.z < ball_position.z and dist_to_ball < acceptable_dist) {
+    return rules.ROBOT_MAX_JUMP_SPEED;
+  }
+  return 0.0;
 }
 
 bool MyStrategy::goal_scored(double z) {
@@ -325,12 +316,13 @@ bool MyStrategy::is_duplicate_target(const Vec2D &target_position,
   return false;
 }
 
-void MyStrategy::set_action(model::Action &action,
-                            const int &id,
-                            const Vec3D &target_position,
-                            const Vec3D &target_velocity,
-                            const double &jump_speed,
-                            const bool &use_nitro) {
+void MyStrategy::set_action(
+    model::Action &action,
+    const int &id,
+    const Vec3D &target_position,
+    const Vec3D &target_velocity,
+    const double &jump_speed,
+    const bool &use_nitro) {
   action.target_velocity_x = target_velocity.x;
   action.target_velocity_y = target_velocity.y;
   action.target_velocity_z = target_velocity.z;
@@ -351,28 +343,31 @@ std::string MyStrategy::custom_rendering() {
   res += defense_border + "," + critical_border;
 
   // predicted path of the ball
-  for (int i = 0; i < int(predicted_ball_positions.size()); ++i) {
-    if (goal_scored(predicted_ball_positions[i].z)) {
-      res += "," + draw_sphere_util(predicted_ball_positions[i], 1, RED, 1.0);
+  for (int i = 0; i < int(projected_ball_path.size()); ++i) {
+    if (goal_scored(projected_ball_path[i].z)) {
+      res += "," + draw_sphere_util(projected_ball_path[i], 1.5, RED, 1.0);
       break;
     }
-    res += "," + draw_sphere_util(predicted_ball_positions[i], 1, RED, 0.25);
+    res += "," + draw_sphere_util(projected_ball_path[i], 1, RED, 0.25);
   }
-  // predicted path of the ball_col
-  for (int i = 0; i < int(predicted_ball_col_positions.size()); ++i) {
-    if (goal_scored(predicted_ball_col_positions[i].z)) {
-      res += "," + draw_sphere_util(predicted_ball_col_positions[i], 1, VIOLET, 1);
+  // predicted path of the ball_spec
+  for (int i = 0; i < int(projected_ball_spec_path.size()); ++i) {
+    if (goal_scored(projected_ball_spec_path[i].z)) {
+      res += "," + draw_sphere_util(projected_ball_spec_path[i], 1.5, VIOLET, 1);
       break;
     }
-    res += "," + draw_sphere_util(predicted_ball_col_positions[i], 1, VIOLET, 0.1);
+    res += "," + draw_sphere_util(projected_ball_spec_path[i], 1, VIOLET, 0.1);
   }
 
   // predicted paths of the robots
-  for (int j = 0; j < int(predicted_robot_positions[0].size()); ++j) {
-    for (int i = 1; i < int(predicted_robot_positions.size()); ++i) {
-      Vec3D prev_pos = predicted_robot_positions[i-1][j];
-      Vec3D position = predicted_robot_positions[i][j];
-      res += "," + draw_line_util(prev_pos, position, 10, BLUE, 0.5);
+  for (int id = 1; id < int(projected_robot_paths.size()); ++id) {
+    for (int i = 1; i < int(projected_robot_paths[id].size()); ++i) {
+      int step_size = 6;
+      if (i % step_size == 0 and 2*i <= SIMULATION_DURATION/SIMULATION_PRECISION) {
+        Vec3D prev_pos = projected_robot_paths[id][i-step_size];
+        Vec3D position = projected_robot_paths[id][i];
+        res += "," + draw_line_util(prev_pos, position, 10, TEAL, 0.5);
+      }
     }
   }
 
@@ -384,6 +379,10 @@ std::string MyStrategy::custom_rendering() {
       case ATTACKER:
         res += "," + draw_sphere_util(hover,                0.5, RED, 1.0);
         res += "," + draw_sphere_util(target_positions[id], 1.0, RED, 0.5);
+        break;
+      case INIT_JUMPER:
+        res += "," + draw_sphere_util(hover,                0.5, YELLOW, 1.0);
+        res += "," + draw_sphere_util(target_positions[id], 1.0, YELLOW, 0.5);
         break;
       case DEFENDER:
         res += "," + draw_sphere_util(hover,                0.5, BLUE, 1.0);
@@ -408,7 +407,7 @@ std::string MyStrategy::custom_rendering() {
       default:
         res += "," + draw_sphere_util(hover,                0.5, BLACK, 1.0);
         res += "," + draw_sphere_util(target_positions[id], 1.0, BLACK, 0.5);
-    }
+    };
   }
 
   res += "]";

@@ -22,7 +22,7 @@ Simulation::Simulation(const Ball &ball,
     rules.BALL_ARENA_E,
     BALL
   };
-  this->ball_col = this->ball;
+  this->ball_spec = this->ball;
   for (auto robot : robots) {
     this->robots.push_back({
       Vec3D(robot.x, robot.z, robot.y),
@@ -32,7 +32,8 @@ Simulation::Simulation(const Ball &ball,
       jump_speeds[robot.id],
       rules.ROBOT_MASS,
       rules.ROBOT_ARENA_E,
-      (robot.is_teammate ? ALLY : ENEMY)
+      (robot.is_teammate ? ALLY : ENEMY),
+      robot.id
     });
   }
   this->rules = rules;
@@ -55,18 +56,18 @@ Vec3D Simulation::clamp(const Vec3D &v, double val) {
 void Simulation::update() {
   move(robots);
   move(ball);
-  move(ball_col);
+  move(ball_spec);
 
   for (int i = 0; i < int(robots.size()); ++i)
     for (int j = 0; j < i; ++j)
       collide_entities(robots[i], robots[j]);
   for (Entity &robot : robots) {
     // collide_entities(robot, ball);
-    collide_entities(robot, ball_col);
+    collide_entities(robot, ball_spec);
     collide_with_arena(robot);
   }
   collide_with_arena(ball);
-  collide_with_arena(ball_col);
+  collide_with_arena(ball_spec);
 
   sim_tick++;
 }
@@ -105,14 +106,14 @@ void Simulation::move(std::vector<Entity> &ens) {
 }
 
 bool Simulation::might_jump(Entity &en) {
-  double dist_to_ball = (en.position - ball_col.position).len();
+  double dist_to_ball = (en.position - ball_spec.position).len();
   if (en.type == ENEMY) {
     if (dist_to_ball < rules.BALL_RADIUS + 2*rules.ROBOT_MAX_RADIUS and
-        en.position.z > ball_col.position.z)
+        en.position.z > ball_spec.position.z)
       return true;
   } else if (en.type == ALLY) {
     if (dist_to_ball < rules.BALL_RADIUS + 2*rules.ROBOT_MAX_RADIUS and
-        en.position.z < ball_col.position.z)
+        en.position.z < ball_spec.position.z)
       return true;
   }
   return false;

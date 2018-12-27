@@ -6,6 +6,7 @@
 #define _POINT_VECTORS_H_
 
 #include <cmath>
+#include <string>
 
 struct Vec2D {
   double x {0.0};
@@ -15,6 +16,9 @@ struct Vec2D {
   void set(double _x, double _z) { x=_x; z=_z; }
   double len() const { return std::sqrt(x*x + z*z); }
   Vec2D normalize() const { double l=len(); return {x/l, z/l}; }
+  std::string str() const {
+    return "("+std::to_string(x)+","+
+               std::to_string(z)+")"; }
   Vec2D& operator-=(const Vec2D &other) {
     this->x -= other.x;  this->z -= other.z;
     return *this;  }
@@ -50,6 +54,10 @@ struct Vec3D {
     return {x/l, z/l, y/l};  }
   double dot(const Vec3D &other) const {
     return (x*other.x) + (z*other.z) + (y*other.y);  }
+  std::string str() const {
+    return "("+std::to_string(x)+","+
+               std::to_string(z)+","+
+               std::to_string(y)+")"; }
   Vec3D& operator-=(const Vec3D &other) {
     this->x -= other.x;  this->z -= other.z;  this->y -= other.y;
     return *this;  }
