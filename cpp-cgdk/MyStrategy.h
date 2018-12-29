@@ -35,6 +35,8 @@ const Color BLACK  (0.0, 0.0, 0.0);
 const Color LIGHT_RED  (1.0, 0.5, 0.5);
 const Color LIGHT_BLUE (0.5, 0.5, 1.0);
 
+typedef std::vector<Vec3D> Path;
+
 enum Role {ATTACKER,              // red
            INIT_JUMPER,         // yellow
            AGGRESSIVE_DEFENDER,   // light-red
@@ -60,9 +62,10 @@ public:
   int prev_tick = -1;
   bool is_start_of_round = true;
 
-  std::vector<Vec3D> projected_ball_path;
-  std::vector<Vec3D> projected_ball_spec_path;
-  std::vector<std::vector<Vec3D> > projected_robot_paths;
+  Path projected_ball_path;
+  Path projected_ball_spec_path;
+  std::vector<Path> projected_robot_paths;
+  std::vector<Path> projected_jump_paths;
 
   std::vector<int> ally_ids;
 
@@ -82,12 +85,14 @@ public:
       const model::Game &game);
   void run_simulation(const model::Game &game);
   Target calc_intercept_spot(
-      const std::vector<Vec3D> &ball_path,
+      const Path &ball_path,
       const Vec2D &my_position,
+      const double &acceptable_height,
+      const bool &to_shift_x,
       const bool &is_speculative = false,
-      const std::vector<Vec3D> &avoid_path = {});
+      const Path &avoid_path = {});
   Target calc_defend_spot(
-      const std::vector<Vec3D> &ball_path,
+      const Path &ball_path,
       const Vec2D &my_position);
   Target get_default_strat(
       const Vec2D &my_position,
@@ -98,6 +103,7 @@ public:
       const Vec3D &ball_position,
       const std::vector<model::Robot> &robots,
       const Target &attack,
+      const Target &attack_aggro,
       const Target &attack_spec,
       const Target &cross,
       const Target &cross_spec);
@@ -111,6 +117,8 @@ public:
       const Vec2D &my_position,
       const int &id,
       const std::vector<model::Robot> &robots);
+  bool is_attacker(const Role &role);
+  bool is_defender(const Role &role);
   void set_action(
       model::Action &action,
       const int &id,

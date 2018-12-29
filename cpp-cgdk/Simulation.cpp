@@ -20,11 +20,16 @@ Simulation::Simulation(const Ball &ball,
     0.0,
     rules.BALL_MASS,
     rules.BALL_ARENA_E,
-    BALL
+    BALL,
+    -1
   };
+
   this->ball_spec = this->ball;
-  for (auto robot : robots) {
-    this->robots.push_back({
+  this->ball_spec.id = -2;
+
+  this->robots = std::vector<Entity>(robots.size() + 1);
+  for (Robot robot : robots) {
+    this->robots[robot.id] = {
       Vec3D(robot.x, robot.z, robot.y),
       Vec3D(robot.velocity_x, robot.velocity_z, robot.velocity_y),
       target_velocities[robot.id],
@@ -34,7 +39,7 @@ Simulation::Simulation(const Ball &ball,
       rules.ROBOT_ARENA_E,
       (robot.is_teammate ? ALLY : ENEMY),
       robot.id
-    });
+    };
   }
   this->rules = rules;
   this->arena = rules.arena;
@@ -96,12 +101,10 @@ void Simulation::move(std::vector<Entity> &ens) {
       }
     }
     move(en);
-    if (penetration >= 0) {
-      if(might_jump(en))
-        jump(en);
-      if (en.last_sim_jump != sim_tick)
-        unjump(en);
-    }
+    if (penetration >= 0 and might_jump(en))
+      jump(en);
+    if (en.last_sim_jump != sim_tick)
+      unjump(en);
   }
 }
 
@@ -130,6 +133,64 @@ void Simulation::unjump(Entity &en) {
   en.radius_change_speed = 0.0;
 }
 
+std::vector<Vec3D> Simulation::get_jump_path(Entity &en) {
+  Entity enc = en;
+
+  if (enc.type == BALL)
+    return {};
+
+  std::vector<Vec3D> jump_path = {enc.position};
+
+  if (is_touching_arena(enc)) {
+    DaN arena_collision = dan_to_arena(enc.position);
+    double penetration = enc.radius - arena_collision.distance;
+    if (penetration > 0) {
+      // means that the entity is touching the arena
+      Vec3D target_velocity = enc.target_velocity;
+      target_velocity.clamp(rules.ROBOT_MAX_GROUND_SPEED);
+      target_velocity -= arena_collision.normal * arena_collision.normal.dot(target_velocity);
+      Vec3D target_velocity_change = target_velocity - enc.velocity;
+      if (target_velocity_change.len() > 0) {
+        double acceleration = rules.ROBOT_ACCELERATION * std::max(0.0, arena_collision.normal.y);
+        enc.velocity += clamp(target_velocity_change.normalize() * acceleration * delta_time, target_velocity_change.len());
+      }
+    }
+    move(enc);
+    jump(enc);
+    collide_with_arena(enc);
+    jump_path.push_back(enc.position);
+  }
+
+  for (int i = 0; i < 60; ++i) {
+    DaN arena_collision = dan_to_arena(enc.position);
+    double penetration = enc.radius - arena_collision.distance;
+    if (penetration > 0) {
+      // means that the entity is touching the arena
+      Vec3D target_velocity = enc.target_velocity;
+      target_velocity.clamp(rules.ROBOT_MAX_GROUND_SPEED);
+      target_velocity -= arena_collision.normal * arena_collision.normal.dot(target_velocity);
+      Vec3D target_velocity_change = target_velocity - enc.velocity;
+      if (target_velocity_change.len() > 0) {
+        double acceleration = rules.ROBOT_ACCELERATION * std::max(0.0, arena_collision.normal.y);
+        enc.velocity += clamp(target_velocity_change.normalize() * acceleration * delta_time, target_velocity_change.len());
+      }
+    }
+    move(enc);
+    jump_path.push_back(enc.position);
+  }
+
+  /*std::cout<<"projected path of "<<enc.id<<":\n";
+  for (Vec3D &pos : jump_path)
+    std::cout<<pos.str()<<"\n";
+  std::cout<<"--------------------------\n";*/
+
+  return jump_path;
+}
+
+bool Simulation::is_touching_arena(Entity &en) {
+  return en.radius - dan_to_arena(en.position).distance > 0;
+}
+
 bool Simulation::collide_entities(Entity &a, Entity &b) {
   std::uniform_real_distribution<double> unif(rules.MIN_HIT_E, rules.MAX_HIT_E);
   std::default_random_engine re;
@@ -143,7 +204,7 @@ bool Simulation::collide_entities(Entity &a, Entity &b) {
     Vec3D normal = delta_position.normalize();
     a.position -= normal * penetration * k_a;
     b.position += normal * penetration * k_b;
-    double delta_velocity = (b.velocity - a.velocity).dot(normal) +
+    double delta_velocity = (b.velocity - a.velocity).dot(normal) -
                             b.radius_change_speed - a.radius_change_speed;
     if (delta_velocity < 0) {
       Vec3D impulse = normal * (1 + unif(re)) * delta_velocity;

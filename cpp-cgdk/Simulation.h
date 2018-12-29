@@ -14,6 +14,12 @@
 
 enum EntityType {ENEMY, BALL, ALLY};
 
+struct DaN {
+  double distance;
+  Vec3D normal;
+  bool operator<(const DaN &other) const { return distance < other.distance; }
+};
+
 struct Entity {
   Vec3D position;
   Vec3D velocity;
@@ -26,14 +32,8 @@ struct Entity {
   //  0 for the ball
   //  1 for allies
   EntityType type;
-  int id = 0;
+  int id;
   int last_sim_jump = -1;
-};
-
-struct DaN {
-  double distance;
-  Vec3D normal;
-  bool operator<(const DaN &other) const { return distance < other.distance; }
 };
 
 class Simulation {
@@ -60,6 +60,8 @@ public:
   bool might_jump(Entity &en);
   void jump(Entity &en);
   void unjump(Entity &en);
+  std::vector<Vec3D> get_jump_path(Entity &en);
+  bool is_touching_arena(Entity &en);
   bool collide_entities(Entity &a, Entity &b);
   DaN collide_with_arena(Entity &en);
   DaN dan_to_plane(const Vec3D &point, const Vec3D &point_on_plane, const Vec3D &plane_normal);
