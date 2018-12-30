@@ -36,6 +36,7 @@ inline Vec2D operator+(Vec2D lhs, const Vec2D &rhs) {
 inline Vec2D operator*(Vec2D lhs, const double num) {
   lhs *= num;  return lhs;  }
 
+
 struct Vec3D {
   double x {0.0};
   double z {0.0};
@@ -74,5 +75,9 @@ inline Vec3D operator+(Vec3D lhs, const Vec3D &rhs) {
   lhs += rhs;  return lhs;  }
 inline Vec3D operator*(Vec3D lhs, const double num) {
   lhs *= num;  return lhs;  }
+
+
+typedef std::vector<Vec3D> Path;
+
 
 #endif

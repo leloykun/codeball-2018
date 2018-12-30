@@ -4,7 +4,12 @@ using namespace model;
 
 MyStrategy::MyStrategy() { }
 
-void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Action& action) {
+void MyStrategy::act(
+    const Robot& me,
+    const Rules& rules,
+    const Game& game,
+    Action& action) {
+
   if (game.current_tick == 0 and not this->initialized)
     this->init_strategy(rules, game);
 
@@ -14,6 +19,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
   Vec3D ball_position_3d = {ball_position_2d, game.ball.y};
 
   this->robot_positions[me.id] = my_position_3d;
+  this->robot_velocities[me.id] = {me.velocity_x, me.velocity_z, me.velocity_y};
 
   // Recalculate the predictions of the ball's path on new tick
   if (this->prev_tick != game.current_tick) {
@@ -65,7 +71,6 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
 
   switch (roles[me.id]) {
     case ATTACKER:
-    case INIT_JUMPER:
     case AGGRESSIVE_DEFENDER:
       target_position = attack.position;
       target_velocity = attack.velocity;
@@ -95,7 +100,7 @@ void MyStrategy::act(const Robot& me, const Rules& rules, const Game& game, Acti
     me.id,
     Vec3D(target_position, 0.0),
     Vec3D(target_velocity, 0.0),
-    calc_jump_speed(my_position_3d, ball_position_3d, roles[me.id]),
+    calc_jump_speed(my_position_3d, ball_position_3d, me.id),
     false
   );
   /*set_action(
@@ -116,6 +121,7 @@ void MyStrategy::init_strategy(
   this->DEFENSE_BORDER = -rules.BALL_RADIUS;
   this->CRITICAL_BORDER = -(rules.arena.depth/2.0 - rules.arena.top_radius);
   this->rules = rules;
+  this->arena = rules.arena;
 
   // get IDs of allies
   for (Robot robot : game.robots)
@@ -128,41 +134,36 @@ void MyStrategy::init_strategy(
     this->target_velocities.push_back(Vec3D());
     this->jump_speeds.push_back(0.0);
     this->robot_positions.push_back(Vec3D());
+    this->robot_velocities.push_back(Vec3D());
     this->roles.push_back(DEFAULT);
   }
+
+  this->sim = Simulation(
+    game.ball,
+    game.robots,
+    rules,
+    SIMULATION_PRECISION);
 
   this->initialized = true;
 }
 
 void MyStrategy::run_simulation(const model::Game &game) {
-  Vec3D ball_position_3d = {game.ball.x, game.ball.z, game.ball.y};
+  sim.update(
+    game.ball,
+    game.robots,
+    this->target_velocities,
+    this->jump_speeds,
+    game.current_tick);
 
-  // initiate projections
-  projected_ball_path = {ball_position_3d};
-  projected_ball_spec_path = {ball_position_3d};
-  projected_robot_paths = std::vector<Path>(game.robots.size()+1);
-  for (Robot robot : game.robots) {
-    projected_robot_paths[robot.id].push_back({
-      robot.x, robot.z, robot.y
-    });
-  }
-  projected_jump_paths = std::vector<Path>(game.robots.size()+1);
+  projected_jump_paths = std::vector<Path>(int(game.robots.size()) + 1);
+  for (int id = 1; id <= int(game.robots.size()); ++id)
+    projected_jump_paths[id] = sim.get_jump_path(sim.robots[id], 60);
 
-  Simulation sim(game.ball,
-                 game.robots,
-                 target_velocities,
-                 jump_speeds,
-                 rules,
-                 SIMULATION_PRECISION);
-  for(int i = 1; i <= SIMULATION_DURATION/SIMULATION_PRECISION; ++i) {
-    sim.update();
-    projected_ball_path.push_back(sim.ball.position);
-    projected_ball_spec_path.push_back(sim.ball_spec.position);
-    for (Entity robot : sim.robots)
-      projected_robot_paths[robot.id].push_back(robot.position);
-  }
-  for (Entity &robot : sim.robots)
-    projected_jump_paths[robot.id] = sim.get_jump_path(robot);
+  sim.run(int(SIMULATION_DURATION/SIMULATION_PRECISION));
+
+  projected_ball_path = sim.proj_ball_path;
+  projected_ball_spec_path = sim.proj_ball_spec_path;
+  projected_robot_paths = sim.proj_robot_paths;
 }
 
 Target MyStrategy::calc_intercept_spot(
@@ -274,12 +275,7 @@ Role MyStrategy::calc_role(
       attack_aggro.position.z <= DEFENSE_BORDER)
     role = AGGRESSIVE_DEFENDER;
 
-  if (role == DEFENDER and is_start_of_round and robots.size() == 4)
-    role = INIT_JUMPER;
-
-  if (attack.exists and (role == ATTACKER or
-                         role == AGGRESSIVE_DEFENDER or
-                         role == INIT_JUMPER)) {
+  if (attack.exists and (role == ATTACKER or role == AGGRESSIVE_DEFENDER)) {
     if (is_start_of_round or
         !is_duplicate_target(attack.position, my_pos_2d, id, robots))
       return role;
@@ -301,24 +297,24 @@ Role MyStrategy::calc_role(
 double MyStrategy::calc_jump_speed(
     const Vec3D &my_position,
     const Vec3D &ball_position,
-    const Role &role) {
+    const int &id) {
   double dist_to_ball = (my_position - ball_position).len();
+
+  Role role = roles[id];
 
   double jump_dist_factor = 2;
   if (role == DEFENDER or
       role == SPECULATIVE_DEFENDER or
       my_position.z < CRITICAL_BORDER)
     jump_dist_factor = 4;
-  else if (
-      role == INIT_JUMPER or
-      role == AGGRESSIVE_DEFENDER)
+  else if (role == AGGRESSIVE_DEFENDER)
     jump_dist_factor = 6;
 
   double acceptable_dist = rules.BALL_RADIUS + jump_dist_factor*rules.ROBOT_MAX_RADIUS;
 
-  if (my_position.z < ball_position.z and dist_to_ball < acceptable_dist) {
+  if (my_position.z < ball_position.z and dist_to_ball < acceptable_dist)
     return rules.ROBOT_MAX_JUMP_SPEED;
-  }
+
   return 0.0;
 }
 
@@ -326,10 +322,21 @@ bool MyStrategy::goal_scored(double z) {
   return std::fabs(z) > rules.arena.depth/2.0 + rules.BALL_RADIUS;
 }
 
-bool MyStrategy::is_duplicate_target(const Vec2D &target_position,
-                                     const Vec2D &my_position,
-                                     const int &id,
-                                     const std::vector<Robot> &robots) {
+bool MyStrategy::paths_intersect(
+    const Path &robot_path,
+    const Path &ball_path,
+    const int &till_tick) {
+  for (int i = 0; i < till_tick; ++i)
+    if ((robot_path[i] - robot_path[i]).len() <= rules.ROBOT_RADIUS + rules.BALL_RADIUS)
+      return true;
+  return false;
+}
+
+bool MyStrategy::is_duplicate_target(
+    const Vec2D &target_position,
+    const Vec2D &my_position,
+    const int &id,
+    const std::vector<Robot> &robots) {
   Vec2D delta_pos = target_position - my_position;
 
   for (Robot robot : robots) {
@@ -356,11 +363,9 @@ bool MyStrategy::is_duplicate_target(const Vec2D &target_position,
 }
 
 bool MyStrategy::is_attacker(const Role &role) {
-  /*return role == ATTACKER or
-         role == INIT_JUMPER or
+  return role == ATTACKER or
          role == AGGRESSIVE_DEFENDER or
-         role == SPECULATIVE_ATTACKER;*/
-  return role == ATTACKER or role == AGGRESSIVE_DEFENDER;
+         role == SPECULATIVE_ATTACKER;
 }
 
 bool MyStrategy::is_defender(const Role &role) {
@@ -385,7 +390,6 @@ void MyStrategy::set_action(
   jump_speeds[id] = jump_speed;
 }
 
-
 std::string MyStrategy::custom_rendering() {
   std::string res = "[";
 
@@ -396,18 +400,18 @@ std::string MyStrategy::custom_rendering() {
   // predicted path of the ball
   for (int i = 0; i < int(projected_ball_path.size()); ++i) {
     if (goal_scored(projected_ball_path[i].z)) {
-      res += "," + draw_sphere_util(projected_ball_path[i], 1.5, RED, 1.0);
+      res += "," + draw_sphere_util(projected_ball_path[i], 2.5, RED, 1.0);
       break;
     }
-    res += "," + draw_sphere_util(projected_ball_path[i], 1, RED, 0.25);
+    res += "," + draw_sphere_util(projected_ball_path[i], 2, RED, 0.25);
   }
   // predicted path of the ball_spec
   for (int i = 0; i < int(projected_ball_spec_path.size()); ++i) {
     if (goal_scored(projected_ball_spec_path[i].z)) {
-      res += "," + draw_sphere_util(projected_ball_spec_path[i], 1.5, VIOLET, 1);
+      res += "," + draw_sphere_util(projected_ball_spec_path[i], 2.5, VIOLET, 1);
       break;
     }
-    res += "," + draw_sphere_util(projected_ball_spec_path[i], 1, VIOLET, 0.1);
+    res += "," + draw_sphere_util(projected_ball_spec_path[i], 2, VIOLET, 0.1);
   }
 
   // predicted paths of the robots
@@ -423,12 +427,33 @@ std::string MyStrategy::custom_rendering() {
 
   // predicted jump paths of the robots
   for (int id = 1; id < int(projected_jump_paths.size()); ++id) {
+    Vec3D start_pos = projected_jump_paths[id][0];
+    res += "," + draw_line_util(start_pos, {start_pos.x, start_pos.z, 20}, 10, YELLOW, 0.5);
     for (int i = 1; i < int(projected_jump_paths[id].size()); ++i) {
       Vec3D prev_pos = projected_jump_paths[id][i-1];
       Vec3D position = projected_jump_paths[id][i];
       res += "," + draw_line_util(prev_pos, position, 10, YELLOW, 0.5);
     }
   }
+
+  // predicted defense paths of the robots
+  Entity en = {
+    Vec3D(arena.goal_width/2.0 - arena.bottom_radius, -arena.depth/2.0, 1.0),
+    Vec3D(0.0, 0.0, 0.0),
+    Vec3D(-rules.ROBOT_MAX_GROUND_SPEED, 0.0, rules.ROBOT_MAX_GROUND_SPEED),
+    rules.ROBOT_RADIUS,
+    0.0,
+    rules.ROBOT_MASS,
+    rules.ROBOT_ARENA_E,
+    ALLY,
+    -1};
+  Entity enc = en;
+  Path def_path = sim.get_defence_path(en, 60, rules.ROBOT_MAX_JUMP_SPEED);
+  Path def_path_2 = sim.get_defence_path(enc, 60, 0.5*rules.ROBOT_MAX_JUMP_SPEED);
+  for (Vec3D pos : def_path)
+    res += "," + draw_sphere_util(pos, 1, BLACK, 0.5);
+  for (Vec3D pos : def_path_2)
+    res += "," + draw_sphere_util(pos, 1, BLACK, 0.5);
 
   // roles of the robots
   for (int id : ally_ids) {
@@ -439,25 +464,21 @@ std::string MyStrategy::custom_rendering() {
         res += "," + draw_sphere_util(hover,                0.5, RED, 1.0);
         res += "," + draw_sphere_util(target_positions[id], 1.0, RED, 0.5);
         break;
-      case INIT_JUMPER:
-        res += "," + draw_sphere_util(hover,                0.5, YELLOW, 1.0);
-        res += "," + draw_sphere_util(target_positions[id], 1.0, YELLOW, 0.5);
+      case AGGRESSIVE_DEFENDER:
+        res += "," + draw_sphere_util(hover,                0.5, LIGHT_RED, 1.0);
+        res += "," + draw_sphere_util(target_positions[id], 1.0, LIGHT_RED, 0.5);
         break;
       case DEFENDER:
         res += "," + draw_sphere_util(hover,                0.5, BLUE, 1.0);
         res += "," + draw_sphere_util(target_positions[id], 1.0, BLUE, 0.5);
         break;
-      case AGGRESSIVE_DEFENDER:
-        res += "," + draw_sphere_util(hover,                0.5, LIGHT_RED, 1.0);
-        res += "," + draw_sphere_util(target_positions[id], 1.0, LIGHT_RED, 0.5);
+      case SPECULATIVE_ATTACKER:
+        res += "," + draw_sphere_util(hover,                0.5, VIOLET, 1.0);
+        res += "," + draw_sphere_util(target_positions[id], 1.0, VIOLET, 0.5);
         break;
       case SPECULATIVE_DEFENDER:
         res += "," + draw_sphere_util(hover,                0.5, LIGHT_BLUE, 1.0);
         res += "," + draw_sphere_util(target_positions[id], 1.0, LIGHT_BLUE, 0.5);
-        break;
-      case SPECULATIVE_ATTACKER:
-        res += "," + draw_sphere_util(hover,                0.5, VIOLET, 1.0);
-        res += "," + draw_sphere_util(target_positions[id], 1.0, VIOLET, 0.5);
         break;
       case DEFAULT:
         res += "," + draw_sphere_util(hover,                0.5, WHITE, 1.0);

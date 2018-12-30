@@ -28,22 +28,21 @@ const Color RED    (1.0, 0.0, 0.0);
 const Color GREEN  (0.0, 1.0, 0.0);
 const Color BLUE   (0.0, 0.0, 1.0);
 const Color VIOLET (1.0, 0.0, 1.0);
-const Color YELLOW  (1.0, 1.0, 0.0);
+const Color YELLOW (1.0, 1.0, 0.0);
 const Color TEAL   (0.0, 1.0, 1.0);
 const Color WHITE  (1.0, 1.0, 1.0);
 const Color BLACK  (0.0, 0.0, 0.0);
 const Color LIGHT_RED  (1.0, 0.5, 0.5);
 const Color LIGHT_BLUE (0.5, 0.5, 1.0);
 
-typedef std::vector<Vec3D> Path;
-
-enum Role {ATTACKER,              // red
-           INIT_JUMPER,         // yellow
-           AGGRESSIVE_DEFENDER,   // light-red
-           DEFENDER,              // blue
-           SPECULATIVE_DEFENDER,  // light-blue
-           SPECULATIVE_ATTACKER,  // violet
-           DEFAULT};              // white
+enum Role {
+    ATTACKER,              // red
+    AGGRESSIVE_DEFENDER,   // light-red
+    DEFENDER,              // blue
+    SPECULATIVE_ATTACKER,  // violet
+    SPECULATIVE_DEFENDER,  // light-blue
+    BALL_CLEARER,           // yellow - unused
+    DEFAULT};              // white
 
 struct Target {
   bool exists;
@@ -56,6 +55,8 @@ class MyStrategy : public Strategy {
   double DEFENSE_BORDER;
   double CRITICAL_BORDER;
   model::Rules rules;
+  model::Arena arena;
+  Simulation sim;
 public:
   MyStrategy();
 
@@ -73,6 +74,7 @@ public:
   std::vector<Vec3D> target_velocities = {Vec3D()};
   std::vector<double> jump_speeds = {0.0};
   std::vector<Vec3D> robot_positions = {Vec3D()};
+  std::vector<Vec3D> robot_velocities = {Vec3D()};
   std::vector<Role> roles = {DEFAULT};
 
   void act(
@@ -110,8 +112,12 @@ public:
   double calc_jump_speed(
       const Vec3D &my_position,
       const Vec3D &ball_position,
-      const Role &role);
+      const int &id);
   bool goal_scored(double z);
+  bool paths_intersect(
+      const Path &robot_path,
+      const Path &ball_path,
+      const int &till_tick);
   bool is_duplicate_target(
       const Vec2D &target_position,
       const Vec2D &my_position,

@@ -17,7 +17,9 @@ enum EntityType {ENEMY, BALL, ALLY};
 struct DaN {
   double distance;
   Vec3D normal;
-  bool operator<(const DaN &other) const { return distance < other.distance; }
+  bool operator<(const DaN &other) const {
+    return distance < other.distance;
+  }
 };
 
 struct Entity {
@@ -36,39 +38,69 @@ struct Entity {
   int last_sim_jump = -1;
 };
 
-class Simulation {
-  int sim_tick = 0;
-  double delta_time;
+struct Simulation {
   model::Rules rules;
   model::Arena arena;
-public:
+  double delta_time;
+  int num_robots;
+
+  int sim_tick;
+
   Entity ball;
   Entity ball_spec;
   std::vector<Entity> robots;
 
-  Simulation(const model::Ball &ball,
-             const std::vector<model::Robot> &robots,
-             const std::vector<Vec3D> &target_velocities,
-             const std::vector<double> &jump_speeds,
-             const model::Rules &rules,
-             double delta_time);
-  double clamp(double a, double min_val, double max_val);
-  Vec3D clamp(const Vec3D &v, double val);
-  void update();
+  Path proj_ball_path;
+  Path proj_ball_spec_path;
+  std::vector<Path> proj_robot_paths;
+
+  Simulation () { }
+  Simulation(
+      const model::Ball &ball,
+      const std::vector<model::Robot> &robots,
+      const model::Rules &rules,
+      const double &delta_time);
+  void update(
+      const model::Ball &ball,
+      const std::vector<model::Robot> &robots,
+      const std::vector<Vec3D> &target_velocities,
+      const std::vector<double> &jump_speeds,
+      const int &sim_tick);
+
+  void run(const int &num_ticks);
   void move(Entity &en);
-  void move(std::vector<Entity> &robots);
+
   bool might_jump(Entity &en);
-  void jump(Entity &en);
+  void jump(Entity &en, const double &jump_speed, const int &tick);
   void unjump(Entity &en);
-  std::vector<Vec3D> get_jump_path(Entity &en);
+
+  Path get_jump_path(const Entity &en, const int &till_tick);
+  Path get_defence_path(
+      const Entity &en,
+      const int &till_tick,
+      const double &jump_speed);
+
   bool is_touching_arena(Entity &en);
-  bool collide_entities(Entity &a, Entity &b);
-  DaN collide_with_arena(Entity &en);
-  DaN dan_to_plane(const Vec3D &point, const Vec3D &point_on_plane, const Vec3D &plane_normal);
-  DaN dan_to_sphere_inner(const Vec3D &point, const Vec3D &sphere_center, double sphere_radius);
-  DaN dan_to_sphere_outer(const Vec3D &point, const Vec3D &sphere_center, double sphere_radius);
+  void collide_entities(Entity &a, Entity &b);
+  bool collide_with_arena(Entity &en);
+
+  DaN dan_to_plane(
+      const Vec3D &point,
+      const Vec3D &point_on_plane,
+      const Vec3D &plane_normal);
+  DaN dan_to_sphere_inner(
+      const Vec3D &point,
+      const Vec3D &sphere_center,
+      const double &sphere_radius);
+  DaN dan_to_sphere_outer(
+      const Vec3D &point,
+      const Vec3D &sphere_center,
+      const double &sphere_radius);
   DaN dan_to_arena_quarter(const Vec3D &point);
   DaN dan_to_arena(Vec3D &point);
+
+  double clamp(double a, double min_val, double max_val);
+  Vec3D clamp(const Vec3D &v, double val);
 };
 
 #endif
