@@ -24,14 +24,14 @@ struct Color {
   Color(double r, double g, double b) : r(r), g(g), b(b) { }
 };
 
-const Color RED    (1.0, 0.0, 0.0);
-const Color GREEN  (0.0, 1.0, 0.0);
-const Color BLUE   (0.0, 0.0, 1.0);
-const Color VIOLET (1.0, 0.0, 1.0);
-const Color YELLOW (1.0, 1.0, 0.0);
-const Color TEAL   (0.0, 1.0, 1.0);
-const Color WHITE  (1.0, 1.0, 1.0);
-const Color BLACK  (0.0, 0.0, 0.0);
+const Color RED        (1.0, 0.0, 0.0);
+const Color GREEN      (0.0, 1.0, 0.0);
+const Color BLUE       (0.0, 0.0, 1.0);
+const Color VIOLET     (1.0, 0.0, 1.0);
+const Color YELLOW     (1.0, 1.0, 0.0);
+const Color TEAL       (0.0, 1.0, 1.0);
+const Color WHITE      (1.0, 1.0, 1.0);
+const Color BLACK      (0.0, 0.0, 0.0);
 const Color LIGHT_RED  (1.0, 0.5, 0.5);
 const Color LIGHT_BLUE (0.5, 0.5, 1.0);
 
@@ -41,7 +41,7 @@ enum Role {
     DEFENDER,              // blue
     SPECULATIVE_ATTACKER,  // violet
     SPECULATIVE_DEFENDER,  // light-blue
-    BALL_CLEARER,           // yellow - unused
+    BALL_CLEARER,          // yellow - unused
     DEFAULT};              // white
 
 struct Target {
@@ -50,12 +50,18 @@ struct Target {
   Vec2D velocity;
 };
 
+struct TargetJump {
+  bool exists;
+  Vec3D ball_pos;
+  Vec3D robot_pos;
+};
+
 class MyStrategy : public Strategy {
   bool initialized = false;
-  double DEFENSE_BORDER;
-  double CRITICAL_BORDER;
   model::Rules rules;
   model::Arena arena;
+  double DEFENSE_BORDER;
+  double CRITICAL_BORDER;
   Simulation sim;
 public:
   MyStrategy();
@@ -114,10 +120,9 @@ public:
       const Vec3D &ball_position,
       const int &id);
   bool goal_scored(double z);
-  bool paths_intersect(
+  TargetJump calc_jump_intercept(
       const Path &robot_path,
-      const Path &ball_path,
-      const int &till_tick);
+      const Path &ball_path);
   bool is_duplicate_target(
       const Vec2D &target_position,
       const Vec2D &my_position,

@@ -74,16 +74,18 @@ struct Simulation {
   void jump(Entity &en, const double &jump_speed, const int &tick);
   void unjump(Entity &en);
 
-  Path get_jump_path(const Entity &en, const int &till_tick);
+  bool is_touching_arena(Entity &en);
+  void collide_entities(Entity &a, Entity &b);
+  bool collide_with_arena(Entity &en);
+
+  // ----------- Found in: SimPredict.cpp ---------------
+  Path get_jump_path(const Entity &en);
   Path get_defence_path(
       const Entity &en,
       const int &till_tick,
       const double &jump_speed);
 
-  bool is_touching_arena(Entity &en);
-  void collide_entities(Entity &a, Entity &b);
-  bool collide_with_arena(Entity &en);
-
+  // ----------- Found in: SimUtils.cpp ---------------
   DaN dan_to_plane(
       const Vec3D &point,
       const Vec3D &point_on_plane,
@@ -98,7 +100,6 @@ struct Simulation {
       const double &sphere_radius);
   DaN dan_to_arena_quarter(const Vec3D &point);
   DaN dan_to_arena(Vec3D &point);
-
   double clamp(double a, double min_val, double max_val);
   Vec3D clamp(const Vec3D &v, double val);
 };

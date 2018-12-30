@@ -21,10 +21,7 @@ void MyStrategy::act(
   this->robot_positions[me.id] = my_position_3d;
   this->robot_velocities[me.id] = {me.velocity_x, me.velocity_z, me.velocity_y};
 
-  // Recalculate the predictions of the ball's path on new tick
   if (this->prev_tick != game.current_tick) {
-    this->is_start_of_round = ball_position_2d.len() < rules.BALL_RADIUS;
-
     if (game.current_tick % 100 == 0)
       std::cout<<game.current_tick<<"\n";
 
@@ -118,10 +115,10 @@ void MyStrategy::init_strategy(
     const model::Game &game) {
   std::cout<<"START!\n";
 
-  this->DEFENSE_BORDER = -rules.BALL_RADIUS;
-  this->CRITICAL_BORDER = -(rules.arena.depth/2.0 - rules.arena.top_radius);
   this->rules = rules;
   this->arena = rules.arena;
+  this->DEFENSE_BORDER = -arena.depth/6.0;
+  this->CRITICAL_BORDER = -(arena.depth/2.0 - arena.top_radius);
 
   // get IDs of allies
   for (Robot robot : game.robots)
@@ -157,7 +154,7 @@ void MyStrategy::run_simulation(const model::Game &game) {
 
   projected_jump_paths = std::vector<Path>(int(game.robots.size()) + 1);
   for (int id = 1; id <= int(game.robots.size()); ++id)
-    projected_jump_paths[id] = sim.get_jump_path(sim.robots[id], 60);
+    projected_jump_paths[id] = sim.get_jump_path(sim.robots[id]);
 
   sim.run(int(SIMULATION_DURATION/SIMULATION_PRECISION));
 
@@ -187,9 +184,9 @@ Target MyStrategy::calc_intercept_spot(
 
     target_position.x = ball_path[i].x;
     if (to_shift_x) {
-      if (target_position.x < - (rules.arena.goal_width/2.0 - rules.arena.goal_top_radius))
+      if (target_position.x < - (arena.goal_width/2.0 - arena.goal_top_radius))
         target_position.x -= rules.ROBOT_RADIUS;
-      else if (target_position.x > rules.arena.goal_width/2.0 - rules.arena.goal_top_radius)
+      else if (target_position.x > arena.goal_width/2.0 - arena.goal_top_radius)
         target_position.x += rules.ROBOT_RADIUS;
     }
     target_position.z = ball_path[i].z - 1.5 * rules.ROBOT_RADIUS;
@@ -219,7 +216,11 @@ Target MyStrategy::calc_defend_spot(
     const Path &ball_path,
     const Vec2D &my_position) {
 
-  Vec2D target_position(0.0, -(rules.arena.depth/2.0 + rules.BALL_RADIUS));
+  Vec2D target_position(
+    sim.clamp(ball_path[0].x,
+              -(arena.goal_width/2.0-2*arena.bottom_radius),
+              arena.goal_width/2.0-2*arena.bottom_radius),
+    -(arena.depth/2.0+rules.ROBOT_RADIUS));
   Vec2D target_velocity = (target_position - my_position) *
                           rules.ROBOT_MAX_GROUND_SPEED;
 
@@ -229,7 +230,7 @@ Target MyStrategy::calc_defend_spot(
 
     double t = i * SIMULATION_PRECISION;
 
-    if (ball_path[i].z <= -rules.arena.depth/2.0) {
+    if (ball_path[i].z <= -arena.depth/2.0) {
       target_position.x = ball_path[i].x;
       Vec2D delta_pos = target_position - my_position;
       double need_speed = delta_pos.len() / t;
@@ -243,7 +244,7 @@ Target MyStrategy::calc_defend_spot(
 Target MyStrategy::get_default_strat(
     const Vec2D &my_position,
     const Vec2D &ball_position) {
-  Vec2D target_position(ball_position.x, -rules.arena.depth/2.0);
+  Vec2D target_position(ball_position.x, -arena.depth/2.0);
   Vec2D target_velocity = (target_position - my_position) *
                            rules.ROBOT_MAX_GROUND_SPEED;
   return {true, target_position, target_velocity};
@@ -275,11 +276,9 @@ Role MyStrategy::calc_role(
       attack_aggro.position.z <= DEFENSE_BORDER)
     role = AGGRESSIVE_DEFENDER;
 
-  if (attack.exists and (role == ATTACKER or role == AGGRESSIVE_DEFENDER)) {
-    if (is_start_of_round or
-        !is_duplicate_target(attack.position, my_pos_2d, id, robots))
+  if (attack.exists and is_attacker(role))
+    if (!is_duplicate_target(attack.position, my_pos_2d, id, robots))
       return role;
-  }
 
   if (!is_duplicate_target(cross.position, my_pos_2d, id, robots))
     return DEFENDER;
@@ -302,13 +301,28 @@ double MyStrategy::calc_jump_speed(
 
   Role role = roles[id];
 
+  TargetJump ball_intercept = calc_jump_intercept(
+     projected_jump_paths[id],
+     projected_ball_path);
+  TargetJump ball_spec_intercept = calc_jump_intercept(
+     projected_jump_paths[id],
+     projected_ball_spec_path);
+
+  if ((role == DEFENDER or role == AGGRESSIVE_DEFENDER) and
+      ball_intercept.exists and
+      ball_intercept.ball_pos.z > my_position.z and
+      ball_intercept.ball_pos.z > ball_intercept.robot_pos.z + 0.5)
+    return rules.ROBOT_MAX_JUMP_SPEED;
+
+  if (role == SPECULATIVE_DEFENDER and
+      ball_spec_intercept.exists and
+      ball_spec_intercept.ball_pos.z > my_position.z and
+      ball_spec_intercept.ball_pos.z > ball_spec_intercept.robot_pos.z + 0.5)
+    return rules.ROBOT_MAX_JUMP_SPEED;
+
   double jump_dist_factor = 2;
-  if (role == DEFENDER or
-      role == SPECULATIVE_DEFENDER or
-      my_position.z < CRITICAL_BORDER)
+  if (my_position.z < CRITICAL_BORDER)
     jump_dist_factor = 4;
-  else if (role == AGGRESSIVE_DEFENDER)
-    jump_dist_factor = 6;
 
   double acceptable_dist = rules.BALL_RADIUS + jump_dist_factor*rules.ROBOT_MAX_RADIUS;
 
@@ -319,17 +333,16 @@ double MyStrategy::calc_jump_speed(
 }
 
 bool MyStrategy::goal_scored(double z) {
-  return std::fabs(z) > rules.arena.depth/2.0 + rules.BALL_RADIUS;
+  return std::fabs(z) > arena.depth/2.0 + rules.BALL_RADIUS;
 }
 
-bool MyStrategy::paths_intersect(
+TargetJump MyStrategy::calc_jump_intercept(
     const Path &robot_path,
-    const Path &ball_path,
-    const int &till_tick) {
-  for (int i = 0; i < till_tick; ++i)
-    if ((robot_path[i] - robot_path[i]).len() <= rules.ROBOT_RADIUS + rules.BALL_RADIUS)
-      return true;
-  return false;
+    const Path &ball_path) {
+  for (int i = 0; i < std::min(int(robot_path.size()), int(ball_path.size())); ++i)
+    if ((ball_path[i] - robot_path[i]).len() <= rules.BALL_RADIUS)
+      return {true, ball_path[i], robot_path[i]};
+  return {false, Vec3D(), Vec3D()};
 }
 
 bool MyStrategy::is_duplicate_target(
@@ -364,8 +377,7 @@ bool MyStrategy::is_duplicate_target(
 
 bool MyStrategy::is_attacker(const Role &role) {
   return role == ATTACKER or
-         role == AGGRESSIVE_DEFENDER or
-         role == SPECULATIVE_ATTACKER;
+         role == AGGRESSIVE_DEFENDER;
 }
 
 bool MyStrategy::is_defender(const Role &role) {
