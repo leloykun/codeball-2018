@@ -16,6 +16,7 @@ std::string RenderUtil::get_json() {
   return json;
 }
 
+
 void RenderUtil::draw_sphere(
     const Vec3D &pos,
     const double &radius,
@@ -59,6 +60,7 @@ void RenderUtil::draw_line(
                                      color_str + "}}");
 }
 
+
 void RenderUtil::draw_border(const double &border_z) {
   /*  b -- a
    *  |    |
@@ -77,7 +79,6 @@ void RenderUtil::draw_border(const double &border_z) {
   draw_line(corner_C, corner_D, 5, GREEN, 0.5);
   draw_line(corner_D, corner_A, 5, GREEN, 0.5);
 }
-
 
 void RenderUtil::draw_ball_path(
     const Path &path,

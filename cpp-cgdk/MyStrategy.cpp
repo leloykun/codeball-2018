@@ -21,12 +21,9 @@ void MyStrategy::act(
   this->robot_positions[me.id] = my_position_3d;
   this->robot_velocities[me.id] = {me.velocity_x, me.velocity_z, me.velocity_y};
 
-  if (this->prev_tick != game.current_tick) {
-    if (game.current_tick % 100 == 0)
-      std::cout<<game.current_tick<<"\n";
-
-    this->prev_tick = game.current_tick;
-  }
+  if (this->prev_tick != game.current_tick and game.current_tick % 100 == 0)
+    std::cout<<game.current_tick<<"\n";
+  this->prev_tick = game.current_tick;
 
   this->run_simulation(game);
 
@@ -220,7 +217,7 @@ Target MyStrategy::calc_defend_spot(
     sim.clamp(ball_path[0].x,
               -(arena.goal_width/2.0-2*arena.bottom_radius),
               arena.goal_width/2.0-2*arena.bottom_radius),
-    -(arena.depth/2.0+rules.ROBOT_RADIUS));
+    -arena.depth/2.0);
   Vec2D target_velocity = (target_position - my_position) *
                           rules.ROBOT_MAX_GROUND_SPEED;
 
@@ -244,7 +241,7 @@ Target MyStrategy::calc_defend_spot(
 Target MyStrategy::get_default_strat(
     const Vec2D &my_position,
     const Vec2D &ball_position) {
-  Vec2D target_position(ball_position.x, -arena.depth/2.0);
+  Vec2D target_position(ball_position.x, ball_position.z - 2*rules.BALL_RADIUS);
   Vec2D target_velocity = (target_position - my_position) *
                            rules.ROBOT_MAX_GROUND_SPEED;
   return {true, target_position, target_velocity};
