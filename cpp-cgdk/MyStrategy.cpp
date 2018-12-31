@@ -311,7 +311,8 @@ double MyStrategy::calc_jump_speed(
   if ((role == DEFENDER or role == AGGRESSIVE_DEFENDER) and
       ball_intercept.exists and
       ball_intercept.ball_pos.z > my_position.z and
-      ball_intercept.ball_pos.z > ball_intercept.robot_pos.z + 0.5)
+      ball_intercept.ball_pos.z > ball_intercept.robot_pos.z + 0.5 and
+      ball_intercept.ball_pos.y > ball_intercept.robot_pos.y)
     return rules.ROBOT_MAX_JUMP_SPEED;
 
   if (role == SPECULATIVE_DEFENDER and
