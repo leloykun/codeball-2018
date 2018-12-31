@@ -8,6 +8,8 @@
 #include <cmath>
 #include <string>
 
+const double EPS = 1e-5;
+
 struct Vec2D {
   double x {0.0};
   double z {0.0};
@@ -46,12 +48,15 @@ struct Vec3D {
   Vec3D(const Vec2D &plane, double y) : x(plane.x), z(plane.z), y(y) { }
   void set(double _x, double _z, double _y) { x=_x; z=_z; y=_y; }
   void clamp(double val) {
-    this->x = std::min(this->x, val);
-    this->z = std::min(this->z, val);
-    this->y = std::min(this->y, val);  }
+    double l = len();
+    if (l < val)  return;
+    x *= val/l;
+    z *= val/l;
+    y *= val/l;  }
   double len() const { return std::sqrt(x*x + z*z + y*y); }
   Vec3D normalize() const {
     double l = len();
+    if (l < EPS)  return {x, z, y};
     return {x/l, z/l, y/l};  }
   double dot(const Vec3D &other) const {
     return (x*other.x) + (z*other.z) + (y*other.y);  }

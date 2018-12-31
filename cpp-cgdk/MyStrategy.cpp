@@ -303,29 +303,24 @@ double MyStrategy::calc_jump_speed(
 
   TargetJump ball_intercept = calc_jump_intercept(
      projected_jump_paths[id],
-     projected_ball_path);
+     projected_ball_path,
+     my_position);
   TargetJump ball_spec_intercept = calc_jump_intercept(
      projected_jump_paths[id],
-     projected_ball_spec_path);
+     projected_ball_spec_path,
+     my_position);
 
-  if ((role == DEFENDER or role == AGGRESSIVE_DEFENDER) and
-      ball_intercept.exists and
-      ball_intercept.ball_pos.z > my_position.z and
-      ball_intercept.ball_pos.z > ball_intercept.robot_pos.z + 0.5 and
-      ball_intercept.ball_pos.y > ball_intercept.robot_pos.y)
+  if (role == SPECULATIVE_DEFENDER and ball_spec_intercept.exists)
     return rules.ROBOT_MAX_JUMP_SPEED;
 
-  if (role == SPECULATIVE_DEFENDER and
-      ball_spec_intercept.exists and
-      ball_spec_intercept.ball_pos.z > my_position.z and
-      ball_spec_intercept.ball_pos.z > ball_spec_intercept.robot_pos.z + 0.5)
+  if (not ball_intercept.exists)
+    return 0.0;
+
+  if (role == AGGRESSIVE_DEFENDER or
+      (role == DEFENDER and ball_intercept.robot_pos.z <= CRITICAL_BORDER))
     return rules.ROBOT_MAX_JUMP_SPEED;
 
-  double jump_dist_factor = 2;
-  if (my_position.z < CRITICAL_BORDER)
-    jump_dist_factor = 4;
-
-  double acceptable_dist = rules.BALL_RADIUS + jump_dist_factor*rules.ROBOT_MAX_RADIUS;
+  double acceptable_dist = rules.BALL_RADIUS + 6*rules.ROBOT_MAX_RADIUS;
 
   if (my_position.z < ball_position.z and dist_to_ball < acceptable_dist)
     return rules.ROBOT_MAX_JUMP_SPEED;
@@ -339,10 +334,17 @@ bool MyStrategy::goal_scored(double z) {
 
 TargetJump MyStrategy::calc_jump_intercept(
     const Path &robot_path,
-    const Path &ball_path) {
+    const Path &ball_path,
+    const Vec3D &my_position) {
   for (int i = 0; i < std::min(int(robot_path.size()), int(ball_path.size())); ++i)
-    if ((ball_path[i] - robot_path[i]).len() <= rules.BALL_RADIUS)
-      return {true, ball_path[i], robot_path[i]};
+    if ((ball_path[i] - robot_path[i]).len() <= rules.BALL_RADIUS + rules.ROBOT_RADIUS) {
+      if (ball_path[i].z > my_position.z and
+          ball_path[i].z > robot_path[i].z + 0.5 and
+          ball_path[i].y > robot_path[i].y) {
+        return {true, ball_path[i], robot_path[i]};
+      } else
+        return {false, Vec3D(), Vec3D()};
+    }
   return {false, Vec3D(), Vec3D()};
 }
 
@@ -441,14 +443,17 @@ std::string MyStrategy::custom_rendering() {
   // predicted jump paths of the robots
   for (int id = 1; id < int(projected_jump_paths.size()); ++id) {
     Vec3D start_pos = projected_jump_paths[id][0];
-    res += "," + draw_line_util(start_pos, {start_pos.x, start_pos.z, 20}, 10, YELLOW, 0.5);
+    if (start_pos.y > rules.ROBOT_RADIUS)
+      res += "," + draw_line_util(start_pos, {start_pos.x, start_pos.z, 20}, 10, YELLOW, 0.5);
+    else
+      res += "," + draw_line_util(start_pos, {start_pos.x, start_pos.z, 20}, 10, TEAL, 0.5);
     for (int i = 1; i < int(projected_jump_paths[id].size()); ++i) {
-      Vec3D prev_pos = projected_jump_paths[id][i-1];
       Vec3D position = projected_jump_paths[id][i];
-      res += "," + draw_line_util(prev_pos, position, 10, YELLOW, 0.5);
+      res += "," + draw_sphere_util(position, 1, YELLOW, 0.5);
     }
   }
 
+  /*
   // predicted defense paths of the robots
   Entity en = {
     Vec3D(arena.goal_width/2.0 - arena.bottom_radius, -arena.depth/2.0, 1.0),
@@ -467,6 +472,7 @@ std::string MyStrategy::custom_rendering() {
     res += "," + draw_sphere_util(pos, 1, BLACK, 0.5);
   for (Vec3D pos : def_path_2)
     res += "," + draw_sphere_util(pos, 1, BLACK, 0.5);
+  */
 
   // roles of the robots
   for (int id : ally_ids) {

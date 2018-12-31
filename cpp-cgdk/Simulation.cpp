@@ -125,10 +125,10 @@ void Simulation::move(Entity &en) {
   if (en.type == ALLY or en.type == ENEMY) {
     if (is_touching_arena(en)) {
       DaN arena_collision = dan_to_arena(en.position);
-      Vec3D target_velocity = en.target_velocity;
-      target_velocity.clamp(rules.ROBOT_MAX_GROUND_SPEED);
+      Vec3D target_velocity = clamp(en.target_velocity, rules.ROBOT_MAX_GROUND_SPEED);
       target_velocity -= arena_collision.normal * arena_collision.normal.dot(target_velocity);
       Vec3D target_velocity_change = target_velocity - en.velocity;
+      //std::cout<<target_velocity_change.str()<<"|";
       if (target_velocity_change.len() > 0) {
         double acceleration = rules.ROBOT_ACCELERATION * std::max(0.0, arena_collision.normal.y);
         en.velocity += clamp(target_velocity_change.normalize() * acceleration * delta_time, target_velocity_change.len());

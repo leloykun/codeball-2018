@@ -12,7 +12,6 @@
 #include <vector>
 #include <iostream>
 
-const double EPS = 1e-5;
 const double SIMULATION_DURATION = 5;
 const double SIMULATION_PRECISION = 1/60.0;
 
@@ -122,7 +121,8 @@ public:
   bool goal_scored(double z);
   TargetJump calc_jump_intercept(
       const Path &robot_path,
-      const Path &ball_path);
+      const Path &ball_path,
+      const Vec3D &my_position);
   bool is_duplicate_target(
       const Vec2D &target_position,
       const Vec2D &my_position,

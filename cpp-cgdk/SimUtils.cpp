@@ -10,8 +10,7 @@ DaN Simulation::dan_to_plane(
     const Vec3D &plane_normal) {
   return {
     plane_normal.dot(point - point_on_plane),
-    plane_normal
-  };
+    plane_normal};
 }
 
 DaN Simulation::dan_to_sphere_inner(
@@ -20,8 +19,7 @@ DaN Simulation::dan_to_sphere_inner(
     const double &sphere_radius) {
   return {
     sphere_radius - (point - sphere_center).len(),
-    (sphere_center - point).normalize()
-  };
+    (sphere_center - point).normalize()};
 }
 
 DaN Simulation::dan_to_sphere_outer(
@@ -30,8 +28,7 @@ DaN Simulation::dan_to_sphere_outer(
     const double &sphere_radius) {
   return {
     (point - sphere_center).len() - sphere_radius,
-    (point - sphere_center).normalize()
-  };
+    (point - sphere_center).normalize()};
 }
 
 DaN Simulation::dan_to_arena_quarter(const Vec3D &point) {
@@ -388,11 +385,8 @@ double Simulation::clamp(double a, double min_val, double max_val) {
 }
 
 Vec3D Simulation::clamp(const Vec3D &v, double val) {
-  return {
-    std::min(v.x, val),
-    std::min(v.z, val),
-    std::min(v.y, val),
-  };
+  if (v.len() < val)  return v;
+  return v.normalize() * val;
 }
 
 #endif

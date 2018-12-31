@@ -13,15 +13,14 @@ Path Simulation::get_jump_path(const Entity &en) {
 
   Path jump_path = {enc.position};
   //std::cout<<enc.velocity.str()<<"|"<<enc.position.str()<<"|"<<dan_to_arena(enc.position).distance<<"|"<<enc.radius<<"\n";
-  int i = 0;
 
   double distance_to_arena = dan_to_arena(enc.position).distance;
 
-  if (distance_to_arena > rules.ROBOT_RADIUS)
-    return jump_path;
-
+  int i = 0;
   do {
+    //std::cout<<enc.velocity.str()<<"|";
     move(enc);
+    //std::cout<<enc.velocity.str()<<"\n";
     if (i == 0 and enc.radius >= distance_to_arena)
       jump(enc, rules.ROBOT_MAX_JUMP_SPEED, i);
     if (enc.last_sim_jump != i)
@@ -31,8 +30,8 @@ Path Simulation::get_jump_path(const Entity &en) {
 
     //std::cout<<enc.velocity.str()<<"|"<<enc.position.str()<<"|"<<distance_to_arena<<"|"<<enc.radius<<"\n";
 
-    ++i;
     distance_to_arena = dan_to_arena(enc.position).distance;
+    ++i;
   } while (distance_to_arena > rules.ROBOT_RADIUS);
   //std::cout<<"---------------------\n";
 
