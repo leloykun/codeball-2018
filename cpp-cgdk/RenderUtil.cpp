@@ -1,5 +1,11 @@
-#include <cmath>
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+#pragma once
+#endif
 
+#ifndef _RENDER_UTIL_CPP_
+#define _RENDER_UTIL_CPP_
+
+#include <cmath>
 #include "RenderUtil.h"
 
 void RenderUtil::clear() {
@@ -94,3 +100,5 @@ void RenderUtil::draw_ball_path(
     draw_sphere(path[i], radius, color, alpha);
   }
 }
+
+#endif

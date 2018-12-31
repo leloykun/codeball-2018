@@ -100,8 +100,6 @@ struct Simulation {
       const double &sphere_radius);
   DaN dan_to_arena_quarter(const Vec3D &point);
   DaN dan_to_arena(Vec3D &point);
-  double clamp(double a, double min_val, double max_val);
-  Vec3D clamp(const Vec3D &v, double val);
 };
 
 #endif

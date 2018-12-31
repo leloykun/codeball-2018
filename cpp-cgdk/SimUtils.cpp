@@ -380,13 +380,4 @@ DaN Simulation::dan_to_arena(Vec3D &point) {
   return arena_quarter_collision;
 }
 
-double Simulation::clamp(double a, double min_val, double max_val) {
-  return std::min(std::max(a, min_val), max_val);
-}
-
-Vec3D Simulation::clamp(const Vec3D &v, double val) {
-  if (v.len() < val)  return v;
-  return v.normalize() * val;
-}
-
 #endif

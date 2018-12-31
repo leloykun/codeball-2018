@@ -5,9 +5,8 @@
 #ifndef _RENDER_UTIL_H_
 #define _RENDER_UTIL_H_
 
-#include <string>
-
 #include "PointVectors.h"
+#include <string>
 
 struct Color {
   double r {0.0};

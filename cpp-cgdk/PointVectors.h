@@ -82,6 +82,12 @@ inline Vec3D operator+(Vec3D lhs, const Vec3D &rhs) {
 inline Vec3D operator*(Vec3D lhs, const double num) {
   lhs *= num;  return lhs;  }
 
+inline Vec3D clamp(const Vec3D &v, double val) {
+  if (v.len() < val)  return v;
+  return v.normalize() * val;  }
+
+inline double clamp(double a, double min_val, double max_val) {
+  return std::min(std::max(a, min_val), max_val);  }
 
 typedef std::vector<Vec3D> Path;
 

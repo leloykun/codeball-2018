@@ -214,9 +214,9 @@ Target MyStrategy::calc_defend_spot(
     const Vec2D &my_position) {
 
   Vec2D target_position(
-    sim.clamp(ball_path[0].x,
-              -(arena.goal_width/2.0-2*arena.bottom_radius),
-              arena.goal_width/2.0-2*arena.bottom_radius),
+    clamp(ball_path[0].x,
+          -(arena.goal_width/2.0-2*arena.bottom_radius),
+          arena.goal_width/2.0-2*arena.bottom_radius),
     -arena.depth/2.0);
   Vec2D target_velocity = (target_position - my_position) *
                           rules.ROBOT_MAX_GROUND_SPEED;
