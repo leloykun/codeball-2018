@@ -8,31 +8,13 @@
 #include "Strategy.h"
 #include "PointVectors.h"
 #include "Simulation.h"
+#include "RenderUtil.h"
 #include <string>
 #include <vector>
 #include <iostream>
 
 const double SIMULATION_DURATION = 5;
 const double SIMULATION_PRECISION = 1/60.0;
-
-struct Color {
-  double r {0.0};
-  double g {0.0};
-  double b {0.0};
-  Color() { }
-  Color(double r, double g, double b) : r(r), g(g), b(b) { }
-};
-
-const Color RED        (1.0, 0.0, 0.0);
-const Color GREEN      (0.0, 1.0, 0.0);
-const Color BLUE       (0.0, 0.0, 1.0);
-const Color VIOLET     (1.0, 0.0, 1.0);
-const Color YELLOW     (1.0, 1.0, 0.0);
-const Color TEAL       (0.0, 1.0, 1.0);
-const Color WHITE      (1.0, 1.0, 1.0);
-const Color BLACK      (0.0, 0.0, 0.0);
-const Color LIGHT_RED  (1.0, 0.5, 0.5);
-const Color LIGHT_BLUE (0.5, 0.5, 1.0);
 
 enum Role {
     ATTACKER,              // red
@@ -61,7 +43,9 @@ class MyStrategy : public Strategy {
   model::Arena arena;
   double DEFENSE_BORDER;
   double CRITICAL_BORDER;
+
   Simulation sim;
+  RenderUtil renderer;
 public:
   MyStrategy();
 
@@ -139,18 +123,6 @@ public:
       const bool &use_nitro);
 
   std::string custom_rendering() override;
-  std::string draw_border_util(const double &border_z);
-  std::string draw_sphere_util(
-      const Vec3D &pos,
-      const double &radius,
-      const Color &color,
-      const double &alpha);
-  std::string draw_line_util(
-      const Vec3D &p1,
-      const Vec3D &p2,
-      const double &width,
-      const Color &color,
-      const double &alpha);
 };
 
 #endif

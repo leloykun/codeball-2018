@@ -161,7 +161,9 @@ bool Simulation::might_jump(Entity &en) {
 
 //void Simulation::jump(Entity &en, const double &jump_speed, const int &tick) {
 void Simulation::jump(Entity &en, const double &jump_speed, const int &tick) {
-  en.radius = rules.ROBOT_MAX_RADIUS;
+  en.radius = rules.ROBOT_MIN_RADIUS +
+              (rules.ROBOT_MAX_RADIUS - rules.ROBOT_MIN_RADIUS) *
+                 (jump_speed / rules.ROBOT_MAX_JUMP_SPEED);
   en.radius_change_speed = jump_speed;
   en.last_sim_jump = tick;
 }

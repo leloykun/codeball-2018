@@ -25,10 +25,10 @@ void MyStrategy::act(
     if (game.current_tick % 100 == 0)
       std::cout<<game.current_tick<<"\n";
 
-    this->run_simulation(game);
-
     this->prev_tick = game.current_tick;
   }
+
+  this->run_simulation(game);
 
   Target attack = calc_intercept_spot(
     projected_ball_path,
@@ -406,28 +406,15 @@ void MyStrategy::set_action(
 }
 
 std::string MyStrategy::custom_rendering() {
-  std::string res = "[";
+  renderer.clear();
 
-  std::string defense_border = draw_border_util(DEFENSE_BORDER);
-  std::string critical_border = draw_border_util(CRITICAL_BORDER);
-  res += defense_border + "," + critical_border;
+  // draw borders
+  renderer.draw_border(DEFENSE_BORDER);
+  renderer.draw_border(CRITICAL_BORDER);
 
-  // predicted path of the ball
-  for (int i = 0; i < int(projected_ball_path.size()); ++i) {
-    if (goal_scored(projected_ball_path[i].z)) {
-      res += "," + draw_sphere_util(projected_ball_path[i], 2.5, RED, 1.0);
-      break;
-    }
-    res += "," + draw_sphere_util(projected_ball_path[i], 2, RED, 0.25);
-  }
-  // predicted path of the ball_spec
-  for (int i = 0; i < int(projected_ball_spec_path.size()); ++i) {
-    if (goal_scored(projected_ball_spec_path[i].z)) {
-      res += "," + draw_sphere_util(projected_ball_spec_path[i], 2.5, VIOLET, 1);
-      break;
-    }
-    res += "," + draw_sphere_util(projected_ball_spec_path[i], 2, VIOLET, 0.1);
-  }
+  // predicted paths of the ball
+  renderer.draw_ball_path(projected_ball_path, 2, RED, 0.25);
+  renderer.draw_ball_path(projected_ball_spec_path, 2, VIOLET, 0.1);
 
   // predicted paths of the robots
   for (int id = 1; id < int(projected_robot_paths.size()); ++id) {
@@ -435,7 +422,7 @@ std::string MyStrategy::custom_rendering() {
       if (2*i <= SIMULATION_DURATION/SIMULATION_PRECISION) {
         Vec3D prev_pos = projected_robot_paths[id][i-1];
         Vec3D position = projected_robot_paths[id][i];
-        res += "," + draw_line_util(prev_pos, position, 10, TEAL, 0.5);
+        renderer.draw_line(prev_pos, position, 10, TEAL, 0.5);
       }
     }
   }
@@ -444,12 +431,12 @@ std::string MyStrategy::custom_rendering() {
   for (int id = 1; id < int(projected_jump_paths.size()); ++id) {
     Vec3D start_pos = projected_jump_paths[id][0];
     if (start_pos.y > rules.ROBOT_RADIUS)
-      res += "," + draw_line_util(start_pos, {start_pos.x, start_pos.z, 20}, 10, YELLOW, 0.5);
+      renderer.draw_line(start_pos, {start_pos.x, start_pos.z, 20}, 10, YELLOW, 0.5);
     else
-      res += "," + draw_line_util(start_pos, {start_pos.x, start_pos.z, 20}, 10, TEAL, 0.5);
+      renderer.draw_line(start_pos, {start_pos.x, start_pos.z, 20}, 10, TEAL, 0.5);
     for (int i = 1; i < int(projected_jump_paths[id].size()); ++i) {
       Vec3D position = projected_jump_paths[id][i];
-      res += "," + draw_sphere_util(position, 1, YELLOW, 0.5);
+      renderer.draw_sphere(position, 1, YELLOW, 0.5);
     }
   }
 
@@ -469,9 +456,9 @@ std::string MyStrategy::custom_rendering() {
   Path def_path = sim.get_defence_path(en, 60, rules.ROBOT_MAX_JUMP_SPEED);
   Path def_path_2 = sim.get_defence_path(enc, 60, 0.5*rules.ROBOT_MAX_JUMP_SPEED);
   for (Vec3D pos : def_path)
-    res += "," + draw_sphere_util(pos, 1, BLACK, 0.5);
+    renderer.draw_sphere(pos, 1, BLACK, 0.5);
   for (Vec3D pos : def_path_2)
-    res += "," + draw_sphere_util(pos, 1, BLACK, 0.5);
+    renderer.draw_sphere(pos, 1, BLACK, 0.5);
   */
 
   // roles of the robots
@@ -480,90 +467,34 @@ std::string MyStrategy::custom_rendering() {
     hover.y += 1.5*rules.ROBOT_RADIUS;
     switch(roles[id]) {
       case ATTACKER:
-        res += "," + draw_sphere_util(hover,                0.5, RED, 1.0);
-        res += "," + draw_sphere_util(target_positions[id], 1.0, RED, 0.5);
+        renderer.draw_sphere(hover,                0.5, RED, 1.0);
+        renderer.draw_sphere(target_positions[id], 1.0, RED, 0.5);
         break;
       case AGGRESSIVE_DEFENDER:
-        res += "," + draw_sphere_util(hover,                0.5, LIGHT_RED, 1.0);
-        res += "," + draw_sphere_util(target_positions[id], 1.0, LIGHT_RED, 0.5);
+        renderer.draw_sphere(hover,                0.5, LIGHT_RED, 1.0);
+        renderer.draw_sphere(target_positions[id], 1.0, LIGHT_RED, 0.5);
         break;
       case DEFENDER:
-        res += "," + draw_sphere_util(hover,                0.5, BLUE, 1.0);
-        res += "," + draw_sphere_util(target_positions[id], 1.0, BLUE, 0.5);
+        renderer.draw_sphere(target_positions[id], 1.0, BLUE, 0.5);
+        renderer.draw_sphere(hover,                0.5, BLUE, 1.0);
         break;
       case SPECULATIVE_ATTACKER:
-        res += "," + draw_sphere_util(hover,                0.5, VIOLET, 1.0);
-        res += "," + draw_sphere_util(target_positions[id], 1.0, VIOLET, 0.5);
+        renderer.draw_sphere(hover,                0.5, VIOLET, 1.0);
+        renderer.draw_sphere(target_positions[id], 1.0, VIOLET, 0.5);
         break;
       case SPECULATIVE_DEFENDER:
-        res += "," + draw_sphere_util(hover,                0.5, LIGHT_BLUE, 1.0);
-        res += "," + draw_sphere_util(target_positions[id], 1.0, LIGHT_BLUE, 0.5);
+        renderer.draw_sphere(hover,                0.5, LIGHT_BLUE, 1.0);
+        renderer.draw_sphere(target_positions[id], 1.0, LIGHT_BLUE, 0.5);
         break;
       case DEFAULT:
-        res += "," + draw_sphere_util(hover,                0.5, WHITE, 1.0);
-        res += "," + draw_sphere_util(target_positions[id], 1.0, WHITE, 0.5);
+        renderer.draw_sphere(hover,                0.5, WHITE, 1.0);
+        renderer.draw_sphere(target_positions[id], 1.0, WHITE, 0.5);
         break;
       default:
-        res += "," + draw_sphere_util(hover,                0.5, BLACK, 1.0);
-        res += "," + draw_sphere_util(target_positions[id], 1.0, BLACK, 0.5);
+        renderer.draw_sphere(hover,                0.5, BLACK, 1.0);
+        renderer.draw_sphere(target_positions[id], 1.0, BLACK, 0.5);
     };
   }
 
-  res += "]";
-  return res;
-}
-
-std::string MyStrategy::draw_border_util(const double &border_z) {
-  std::string res = "";
-  /*  b -- a
-   *  |    |
-   *  c -- d
-   */
-  Vec3D corner_A = Vec3D( 22, border_z, 17);
-  Vec3D corner_B = Vec3D(-22, border_z, 17);
-  Vec3D corner_C = Vec3D(-22, border_z,  1);
-  Vec3D corner_D = Vec3D( 22, border_z,  1);
-  // border (cross)
-  res +=       draw_line_util(corner_A, corner_C, 5, GREEN, 0.5);
-  res += "," + draw_line_util(corner_B, corner_D, 5, GREEN, 0.5);
-  // border (box)
-  res += "," + draw_line_util(corner_A, corner_B, 5, GREEN, 0.5);
-  res += "," + draw_line_util(corner_B, corner_C, 5, GREEN, 0.5);
-  res += "," + draw_line_util(corner_C, corner_D, 5, GREEN, 0.5);
-  res += "," + draw_line_util(corner_D, corner_A, 5, GREEN, 0.5);
-  return res;
-}
-
-std::string MyStrategy::draw_sphere_util(const Vec3D &pos,
-                                         const double &radius,
-                                         const Color &color,
-                                         const double &alpha) {
-  std::string pos_str = "\"x\":" + std::to_string(pos.x) + "," +
-                        "\"y\":" + std::to_string(pos.y) + "," +
-                        "\"z\":" + std::to_string(pos.z);
-  std::string radius_str = "\"radius\":" + std::to_string(radius);
-  std::string color_str = "\"r\":" + std::to_string(color.r) + "," +
-                          "\"g\":" + std::to_string(color.g) + "," +
-                          "\"b\":" + std::to_string(color.b) + "," +
-                          "\"a\":" + std::to_string(alpha);
-  return "{\"Sphere\":{" + pos_str + "," + radius_str + "," + color_str + "}}";
-}
-
-std::string MyStrategy::draw_line_util(const Vec3D &p1,
-                                       const Vec3D &p2,
-                                       const double &width,
-                                       const Color &color,
-                                       const double &alpha) {
-  std::string p1_str = "\"x1\":" + std::to_string(p1.x) + "," +
-                       "\"y1\":" + std::to_string(p1.y) + "," +
-                       "\"z1\":" + std::to_string(p1.z);
-  std::string p2_str = "\"x2\":" + std::to_string(p2.x) + "," +
-                       "\"y2\":" + std::to_string(p2.y) + "," +
-                       "\"z2\":" + std::to_string(p2.z);
-  std::string width_str = "\"width\":" + std::to_string(width);
-  std::string color_str = "\"r\":" + std::to_string(color.r) + "," +
-                          "\"g\":" + std::to_string(color.g) + "," +
-                          "\"b\":" + std::to_string(color.b) + "," +
-                          "\"a\":" + std::to_string(alpha);
-  return "{\"Line\": {" + p1_str + "," + p2_str + "," + width_str + "," + color_str + "}}";
+  return renderer.get_json();
 }

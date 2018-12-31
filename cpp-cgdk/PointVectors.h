@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <string>
+#include <vector>
 
 const double EPS = 1e-5;
 
