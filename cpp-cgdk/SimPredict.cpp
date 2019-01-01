@@ -12,26 +12,26 @@ Path Simulation::get_jump_path(const Entity &en) {
   assert(enc.type == ALLY or enc.type == ENEMY);
 
   Path jump_path = {enc.position};
-  //std::cout<<enc.velocity.str()<<"|"<<enc.position.str()<<"|"<<dan_to_arena(enc.position).distance<<"|"<<enc.radius<<"\n";
+  //std::cout<<enc.velocity.str()<<"|"<<enc.position.str()<<"|"<<enc.radius<<"\n";
 
-  double distance_to_arena = dan_to_arena(enc.position).distance;
+  int num_collisions_with_arena = 0;
 
-  int i = 0;
-  do {
-    move(enc, 1/100.0);
-    if (i == 0 and enc.radius >= distance_to_arena)
-      jump(enc, rules.ROBOT_MAX_JUMP_SPEED, i);
-    if (enc.last_sim_jump != i)
-      unjump(enc);
-    collide_with_arena(enc);
-    jump_path.push_back(enc.position);
-
-    //std::cout<<enc.velocity.str()<<"|"<<enc.position.str()<<"|"<<distance_to_arena<<"|"<<enc.radius<<"\n";
-
-    distance_to_arena = dan_to_arena(enc.position).distance;
-    ++i;
-  } while (distance_to_arena > rules.ROBOT_RADIUS);
-  //std::cout<<"---------------------\n";
+  for (int tick = 1; tick <= 60; ++tick) {
+    for (int microtick = 1; microtick <= 2; ++microtick) {
+      if (microtick == 2)
+        move(enc, 1.0/60.0 * (99/100.0));
+      else
+        move(enc, 1.0/60.0 * (1/100.0));
+      enc.radius = rules.ROBOT_MAX_RADIUS;
+      enc.radius_change_speed = rules.ROBOT_MAX_JUMP_SPEED;
+      if (collide_with_arena(enc))
+        num_collisions_with_arena++;
+      jump_path.push_back(enc.position);
+      //std::cout<<enc.velocity.str()<<"|"<<enc.position.str()<<"|"<<enc.radius<<"\n";
+    }
+    if (num_collisions_with_arena == 2)
+      break;
+  }
 
   return jump_path;
 }

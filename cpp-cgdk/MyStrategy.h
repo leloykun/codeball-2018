@@ -13,15 +13,13 @@
 #include <vector>
 #include <iostream>
 
-const double SIMULATION_DURATION = 5;
+const double SIMULATION_DURATION = 4;
 const double SIMULATION_PRECISION = 1/60.0;
 
 enum Role {
     ATTACKER,              // red
     AGGRESSIVE_DEFENDER,   // light-red
     DEFENDER,              // blue
-    SPECULATIVE_ATTACKER,  // violet
-    SPECULATIVE_DEFENDER,  // light-blue
     BALL_CLEARER,          // yellow - unused
     DEFAULT};              // white
 
@@ -53,7 +51,6 @@ public:
   bool is_start_of_round = true;
 
   Path projected_ball_path;
-  Path projected_ball_spec_path;
   std::vector<Path> projected_robot_paths;
   std::vector<Path> projected_jump_paths;
 
@@ -68,9 +65,7 @@ public:
 
   Target attack;
   Target attack_aggro;
-  Target attack_spec;
   Target cross;
-  Target cross_spec;
   Target default_strat;
 
   void act(
@@ -86,9 +81,7 @@ public:
       const Path &ball_path,
       const Vec2D &my_position,
       const double &acceptable_height,
-      const bool &to_shift_x,
-      const bool &is_speculative = false,
-      const Path &avoid_path = {});
+      const bool &to_shift_x);
   Target calc_defend_spot(
       const Path &ball_path,
       const Vec2D &my_position);

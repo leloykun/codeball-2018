@@ -26,6 +26,7 @@ void MyStrategy::act(
   this->prev_tick = game.current_tick;
 
   this->run_simulation(game);
+  renderer.clear();
 
   attack = calc_intercept_spot(
     projected_ball_path,
@@ -37,15 +38,7 @@ void MyStrategy::act(
     my_position_2d,
     6*rules.ROBOT_RADIUS,
     false);
-  attack_spec = calc_intercept_spot(
-    projected_ball_spec_path,
-    my_position_2d,
-    4*rules.ROBOT_RADIUS,
-    false,
-    true,
-    projected_ball_path);
   cross = calc_defend_spot(projected_ball_path, my_position_2d);
-  cross_spec = calc_defend_spot(projected_ball_spec_path, my_position_2d);
   default_strat = get_default_strat(my_position_2d, ball_position_2d);
 
   roles[me.id] = calc_role(
@@ -67,14 +60,6 @@ void MyStrategy::act(
     case DEFENDER:
       target_position = cross.position;
       target_velocity = cross.velocity;
-      break;
-    case SPECULATIVE_DEFENDER:
-      target_position = cross_spec.position;
-      target_velocity = cross_spec.velocity;
-      break;
-    case SPECULATIVE_ATTACKER:
-      target_position = attack_spec.position;
-      target_velocity = attack_spec.velocity;
       break;
     case DEFAULT:
       target_position = default_strat.position;
@@ -143,16 +128,15 @@ void MyStrategy::run_simulation(const model::Game &game) {
     this->jump_speeds,
     game.current_tick);
 
-  projected_jump_paths = std::vector<Path>(int(game.robots.size()) + 1);
+  /*projected_jump_paths = std::vector<Path>(int(game.robots.size()) + 1);
   for (int id = 1; id <= int(game.robots.size()); ++id)
-    projected_jump_paths[id] = sim.get_jump_path(sim.robots[id]);
+    projected_jump_paths[id] = sim.get_jump_path(sim.robots[id]);*/
 
   sim.run(
       int(SIMULATION_DURATION/SIMULATION_PRECISION),
       SIMULATION_PRECISION);
 
   projected_ball_path = sim.proj_ball_path;
-  projected_ball_spec_path = sim.proj_ball_spec_path;
   projected_robot_paths = sim.proj_robot_paths;
 }
 
@@ -160,9 +144,7 @@ Target MyStrategy::calc_intercept_spot(
     const Path &ball_path,
     const Vec2D &my_position,
     const double &acceptable_height,
-    const bool &to_shift_x,
-    const bool &is_speculative,
-    const Path &avoid_path) {
+    const bool &to_shift_x) {
 
   Vec2D target_position;
   Vec2D target_velocity;
@@ -170,8 +152,6 @@ Target MyStrategy::calc_intercept_spot(
   for (int i = 1; i < int(ball_path.size()); ++i) {
     if (goal_scored(ball_path[i].z))
       break;
-    if (is_speculative and (ball_path[i] - avoid_path[i]).len() < rules.BALL_RADIUS)
-      continue;
 
     double t = i * SIMULATION_PRECISION;
 
@@ -237,7 +217,7 @@ Target MyStrategy::calc_defend_spot(
 Target MyStrategy::get_default_strat(
     const Vec2D &my_position,
     const Vec2D &ball_position) {
-  Vec2D target_position(ball_position.x, ball_position.z - 2*rules.BALL_RADIUS);
+  Vec2D target_position(ball_position.x, ball_position.z - 10);
   Vec2D target_velocity = (target_position - my_position) *
                            rules.ROBOT_MAX_GROUND_SPEED;
   return {true, target_position, target_velocity};
@@ -271,13 +251,6 @@ Role MyStrategy::calc_role(
   if (!is_duplicate_target(cross.position, my_pos_2d, id, robots))
     return DEFENDER;
 
-  if (!is_duplicate_target(cross_spec.position, my_pos_2d, id, robots))
-    return SPECULATIVE_DEFENDER;
-
-  if (attack_spec.exists and
-      !is_duplicate_target(attack_spec.position, my_pos_2d, id, robots))
-    return SPECULATIVE_ATTACKER;
-
   return DEFAULT;
 }
 
@@ -301,18 +274,15 @@ double MyStrategy::calc_jump_speed(
     id
   };
   Path jump_path = sim.get_jump_path(en_attack);
+  for (int i = 1; i < int(jump_path.size()); ++i) {
+    Vec3D position = jump_path[i];
+    renderer.draw_sphere(position, 1, YELLOW, 0.5);
+  }
 
   TargetJump ball_intercept = calc_jump_intercept(
      jump_path,
      projected_ball_path,
      my_position);
-  TargetJump ball_spec_intercept = calc_jump_intercept(
-     projected_jump_paths[id],
-     projected_ball_spec_path,
-     my_position);
-
-  if (role == SPECULATIVE_DEFENDER and ball_spec_intercept.exists)
-    return rules.ROBOT_MAX_JUMP_SPEED;
 
   if (not ball_intercept.exists)
     return 0.0;
@@ -408,15 +378,12 @@ void MyStrategy::set_action(
 }
 
 std::string MyStrategy::custom_rendering() {
-  renderer.clear();
-
   // draw borders
   renderer.draw_border(DEFENSE_BORDER);
   renderer.draw_border(CRITICAL_BORDER);
 
   // predicted paths of the ball
   renderer.draw_ball_path(projected_ball_path, 2, RED, 0.25);
-  renderer.draw_ball_path(projected_ball_spec_path, 2, VIOLET, 0.1);
 
   // predicted paths of the robots
   for (int id = 1; id < int(projected_robot_paths.size()); ++id) {
@@ -429,18 +396,20 @@ std::string MyStrategy::custom_rendering() {
     }
   }
 
-  // predicted jump paths of the robots
-  for (int id = 1; id < int(projected_jump_paths.size()); ++id) {
-    Vec3D start_pos = projected_jump_paths[id][0];
+  for (int id = 1; id <= 2; ++id) {
+    Vec3D start_pos = robot_positions[id];
     if (start_pos.y > rules.ROBOT_RADIUS)
       renderer.draw_line(start_pos, {start_pos.x, start_pos.z, 20}, 10, YELLOW, 0.5);
     else
       renderer.draw_line(start_pos, {start_pos.x, start_pos.z, 20}, 10, TEAL, 0.5);
+  }
+  /*// predicted jump paths of the robots
+  for (int id = 1; id < int(projected_jump_paths.size()); ++id) {
     for (int i = 1; i < int(projected_jump_paths[id].size()); ++i) {
       Vec3D position = projected_jump_paths[id][i];
       renderer.draw_sphere(position, 1, YELLOW, 0.5);
     }
-  }
+  }*/
 
   /*
   // predicted defense paths of the robots
@@ -479,14 +448,6 @@ std::string MyStrategy::custom_rendering() {
       case DEFENDER:
         renderer.draw_sphere(target_positions[id], 1.0, BLUE, 0.5);
         renderer.draw_sphere(hover,                0.5, BLUE, 1.0);
-        break;
-      case SPECULATIVE_ATTACKER:
-        renderer.draw_sphere(hover,                0.5, VIOLET, 1.0);
-        renderer.draw_sphere(target_positions[id], 1.0, VIOLET, 0.5);
-        break;
-      case SPECULATIVE_DEFENDER:
-        renderer.draw_sphere(hover,                0.5, LIGHT_BLUE, 1.0);
-        renderer.draw_sphere(target_positions[id], 1.0, LIGHT_BLUE, 0.5);
         break;
       case DEFAULT:
         renderer.draw_sphere(hover,                0.5, WHITE, 1.0);
