@@ -2,6 +2,7 @@
 *.zip
 *.pdf
 *.ipynb
+.ipynb_checkpoints/*
 cpp-cgdk/build/*
 !cpp-cgdk/build/MyStrategy
 cpp-cgdk/versions/*_files
