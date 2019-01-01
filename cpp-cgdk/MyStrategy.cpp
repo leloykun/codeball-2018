@@ -27,37 +27,32 @@ void MyStrategy::act(
 
   this->run_simulation(game);
 
-  Target attack = calc_intercept_spot(
+  attack = calc_intercept_spot(
     projected_ball_path,
     my_position_2d,
     4*rules.ROBOT_RADIUS,
     true);
-  Target attack_aggro = calc_intercept_spot(
+  attack_aggro = calc_intercept_spot(
     projected_ball_path,
     my_position_2d,
     6*rules.ROBOT_RADIUS,
     false);
-  Target attack_spec = calc_intercept_spot(
+  attack_spec = calc_intercept_spot(
     projected_ball_spec_path,
     my_position_2d,
     4*rules.ROBOT_RADIUS,
     false,
     true,
     projected_ball_path);
-  Target cross = calc_defend_spot(projected_ball_path, my_position_2d);
-  Target cross_spec = calc_defend_spot(projected_ball_spec_path, my_position_2d);
-  Target default_strat = get_default_strat(my_position_2d, ball_position_2d);
+  cross = calc_defend_spot(projected_ball_path, my_position_2d);
+  cross_spec = calc_defend_spot(projected_ball_spec_path, my_position_2d);
+  default_strat = get_default_strat(my_position_2d, ball_position_2d);
 
   roles[me.id] = calc_role(
     me.id,
     my_position_3d,
     ball_position_3d,
-    game.robots,
-    attack,
-    attack_aggro,
-    attack_spec,
-    cross,
-    cross_spec);
+    game.robots);
 
 
   Vec2D target_position;
@@ -135,14 +130,13 @@ void MyStrategy::init_strategy(
   this->sim = Simulation(
     game.ball,
     game.robots,
-    rules,
-    SIMULATION_PRECISION);
+    rules);
 
   this->initialized = true;
 }
 
 void MyStrategy::run_simulation(const model::Game &game) {
-  sim.update(
+  sim.set(
     game.ball,
     game.robots,
     this->target_velocities,
@@ -153,7 +147,9 @@ void MyStrategy::run_simulation(const model::Game &game) {
   for (int id = 1; id <= int(game.robots.size()); ++id)
     projected_jump_paths[id] = sim.get_jump_path(sim.robots[id]);
 
-  sim.run(int(SIMULATION_DURATION/SIMULATION_PRECISION));
+  sim.run(
+      int(SIMULATION_DURATION/SIMULATION_PRECISION),
+      SIMULATION_PRECISION);
 
   projected_ball_path = sim.proj_ball_path;
   projected_ball_spec_path = sim.proj_ball_spec_path;
@@ -251,12 +247,7 @@ Role MyStrategy::calc_role(
     const int &id,
     const Vec3D &my_position,
     const Vec3D &ball_position,
-    const std::vector<Robot> &robots,
-    const Target &attack,
-    const Target &attack_aggro,
-    const Target &attack_spec,
-    const Target &cross,
-    const Target &cross_spec) {
+    const std::vector<Robot> &robots) {
   Vec2D my_pos_2d = {my_position.x, my_position.z};
 
   // The robot is a defender by default
@@ -298,8 +289,21 @@ double MyStrategy::calc_jump_speed(
 
   Role role = roles[id];
 
+  Entity en_attack = {
+    robot_positions[id],
+    robot_velocities[id],
+    Vec3D(attack.velocity, 0.0),
+    rules.ROBOT_RADIUS,
+    rules.ROBOT_MAX_JUMP_SPEED,
+    rules.ROBOT_MASS,
+    rules.ROBOT_ARENA_E,
+    ALLY,
+    id
+  };
+  Path jump_path = sim.get_jump_path(en_attack);
+
   TargetJump ball_intercept = calc_jump_intercept(
-     projected_jump_paths[id],
+     jump_path,
      projected_ball_path,
      my_position);
   TargetJump ball_spec_intercept = calc_jump_intercept(
@@ -314,7 +318,8 @@ double MyStrategy::calc_jump_speed(
     return 0.0;
 
   if (role == AGGRESSIVE_DEFENDER or
-      (role == DEFENDER and ball_intercept.robot_pos.z <= CRITICAL_BORDER))
+      (role == DEFENDER and ball_intercept.robot_pos.z <= CRITICAL_BORDER) or
+      role == DEFAULT)
     return rules.ROBOT_MAX_JUMP_SPEED;
 
   double acceptable_dist = rules.BALL_RADIUS + 6*rules.ROBOT_MAX_RADIUS;

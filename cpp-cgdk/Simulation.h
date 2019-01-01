@@ -41,7 +41,6 @@ struct Entity {
 struct Simulation {
   model::Rules rules;
   model::Arena arena;
-  double delta_time;
   int num_robots;
 
   int sim_tick;
@@ -58,17 +57,19 @@ struct Simulation {
   Simulation(
       const model::Ball &ball,
       const std::vector<model::Robot> &robots,
-      const model::Rules &rules,
-      const double &delta_time);
-  void update(
+      const model::Rules &rules);
+  void set(
       const model::Ball &ball,
       const std::vector<model::Robot> &robots,
       const std::vector<Vec3D> &target_velocities,
       const std::vector<double> &jump_speeds,
       const int &sim_tick);
 
-  void run(const int &num_ticks);
-  void move(Entity &en);
+  void run(
+      const int &num_ticks,
+      const double &delta_time);
+  void update(const double &delta_time);
+  void move(Entity &en, const double &delta_time);
 
   bool might_jump(Entity &en);
   void jump(Entity &en, const double &jump_speed, const int &tick);

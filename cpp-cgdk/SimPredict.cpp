@@ -18,14 +18,13 @@ Path Simulation::get_jump_path(const Entity &en) {
 
   int i = 0;
   do {
+    move(enc, 1/100.0);
     if (i == 0 and enc.radius >= distance_to_arena)
       jump(enc, rules.ROBOT_MAX_JUMP_SPEED, i);
     if (enc.last_sim_jump != i)
       unjump(enc);
     collide_with_arena(enc);
     jump_path.push_back(enc.position);
-    
-    move(enc);
 
     //std::cout<<enc.velocity.str()<<"|"<<enc.position.str()<<"|"<<distance_to_arena<<"|"<<enc.radius<<"\n";
 
@@ -48,7 +47,7 @@ Path Simulation::get_defence_path(
   Path jump_path = {enc.position};
 
   for (int i = 1; i < till_tick; ++i) {
-    move(enc);
+    move(enc, 1/100.0);
     if (is_touching_arena(enc) and enc.velocity.x <= -(rules.ROBOT_MAX_GROUND_SPEED-1))
       jump(enc, jump_speed, i);
     if (enc.last_sim_jump != i)

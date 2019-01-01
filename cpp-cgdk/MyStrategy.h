@@ -66,6 +66,13 @@ public:
   std::vector<Vec3D> robot_velocities = {Vec3D()};
   std::vector<Role> roles = {DEFAULT};
 
+  Target attack;
+  Target attack_aggro;
+  Target attack_spec;
+  Target cross;
+  Target cross_spec;
+  Target default_strat;
+
   void act(
       const model::Robot& me,
       const model::Rules& rules,
@@ -92,12 +99,7 @@ public:
       const int &id,
       const Vec3D &my_position,
       const Vec3D &ball_position,
-      const std::vector<model::Robot> &robots,
-      const Target &attack,
-      const Target &attack_aggro,
-      const Target &attack_spec,
-      const Target &cross,
-      const Target &cross_spec);
+      const std::vector<model::Robot> &robots);
   double calc_jump_speed(
       const Vec3D &my_position,
       const Vec3D &ball_position,

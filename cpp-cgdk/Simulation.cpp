@@ -13,11 +13,9 @@ using namespace model;
 Simulation::Simulation(
     const Ball &ball,
     const std::vector<Robot> &robots,
-    const Rules &rules,
-    const double &delta_time) {
+    const Rules &rules) {
   this->rules = rules;
   this->arena = rules.arena;
-  this->delta_time = delta_time;
   this->num_robots = robots.size();
 
   this->ball = {
@@ -50,7 +48,7 @@ Simulation::Simulation(
   }
 }
 
-void Simulation::update(
+void Simulation::set(
     const model::Ball &ball,
     const std::vector<model::Robot> &robots,
     const std::vector<Vec3D> &target_velocities,
@@ -79,7 +77,9 @@ void Simulation::update(
   this->sim_tick = sim_tick;
 }
 
-void Simulation::run(const int &num_ticks) {
+void Simulation::run(
+    const int &num_ticks,
+    const double &delta_time) {
   // initiate projections
   proj_ball_path = {ball.position};
   proj_ball_spec_path = {ball_spec.position};
@@ -89,42 +89,46 @@ void Simulation::run(const int &num_ticks) {
     proj_robot_paths[id].push_back(robots[id].position);
 
   for (int tick = 1; tick <= num_ticks; ++tick) {
-    for (int id = 1; id <= num_robots; ++id) {
-      move(robots[id]);
-
-      if (might_jump(robots[id]))
-        jump(robots[id], rules.ROBOT_MAX_JUMP_SPEED, sim_tick);
-      if (robots[id].last_sim_jump != this->sim_tick)
-        unjump(robots[id]);
-    }
-    move(ball);
-    move(ball_spec);
-
-    for (int i = 1; i <= num_robots; ++i)
-      for (int j = 1; j < i; ++j)
-        collide_entities(robots[i], robots[j]);
-    for (int id = 1; id <= num_robots; ++id) {
-      // collide_entities(robots[id], ball);
-      collide_entities(robots[id], ball_spec);
-
-      collide_with_arena(robots[id]);
-    }
-    collide_with_arena(ball);
-    collide_with_arena(ball_spec);
-
-    proj_ball_path.push_back(ball.position);
-    proj_ball_spec_path.push_back(ball_spec.position);
-    for (int id = 1; id < int(robots.size()); ++id)
-      proj_robot_paths[id].push_back(robots[id].position);
-
+    update((1/100.0) * delta_time);
+    update((99/100.0) * delta_time);
     this->sim_tick++;
   }
 }
 
-void Simulation::move(Entity &en) {
+void Simulation::update(const double &delta_time) {
+  for (int id = 1; id <= num_robots; ++id) {
+    move(robots[id], delta_time);
+
+    if (might_jump(robots[id]))
+      jump(robots[id], rules.ROBOT_MAX_JUMP_SPEED, sim_tick);
+    if (robots[id].last_sim_jump != this->sim_tick)
+      unjump(robots[id]);
+  }
+  move(ball, delta_time);
+  move(ball_spec, delta_time);
+
+  for (int i = 1; i <= num_robots; ++i)
+    for (int j = 1; j < i; ++j)
+      collide_entities(robots[i], robots[j]);
+  for (int id = 1; id <= num_robots; ++id) {
+    // collide_entities(robots[id], ball);
+    collide_entities(robots[id], ball_spec);
+
+    collide_with_arena(robots[id]);
+  }
+  collide_with_arena(ball);
+  collide_with_arena(ball_spec);
+
+  proj_ball_path.push_back(ball.position);
+  proj_ball_spec_path.push_back(ball_spec.position);
+  for (int id = 1; id < int(robots.size()); ++id)
+    proj_robot_paths[id].push_back(robots[id].position);
+}
+
+void Simulation::move(Entity &en, const double &delta_time) {
   if (en.type == ALLY or en.type == ENEMY) {
-    if (is_touching_arena(en)) {
-      DaN arena_collision = dan_to_arena(en.position);
+    DaN arena_collision = dan_to_arena(en.position);
+    if (en.radius >= arena_collision.distance) {
       Vec3D target_velocity = clamp(en.target_velocity, rules.ROBOT_MAX_GROUND_SPEED);
       target_velocity -= arena_collision.normal * arena_collision.normal.dot(target_velocity);
       Vec3D target_velocity_change = target_velocity - en.velocity;
@@ -174,8 +178,7 @@ void Simulation::unjump(Entity &en) {
 }
 
 bool Simulation::is_touching_arena(Entity &en) {
-  DaN arena_collision = dan_to_arena(en.position);
-  return en.radius >= arena_collision.distance;
+  return en.radius >= dan_to_arena(en.position).distance;
 }
 
 void Simulation::collide_entities(Entity &a, Entity &b) {
@@ -184,7 +187,7 @@ void Simulation::collide_entities(Entity &a, Entity &b) {
   Vec3D delta_position = b.position - a.position;
   double distance = delta_position.len();
   double penetration = a.radius + b.radius - distance;
-  if (penetration > 0) {
+  if (penetration >= 0) {
     double k_a = (1/a.mass) / ((1/a.mass) + (1/b.mass));
     double k_b = (1/b.mass) / ((1/a.mass) + (1/b.mass));
     Vec3D normal = delta_position.normalize();
@@ -192,7 +195,7 @@ void Simulation::collide_entities(Entity &a, Entity &b) {
     b.position += normal * penetration * k_b;
     double delta_velocity = (b.velocity - a.velocity).dot(normal) -
                             b.radius_change_speed - a.radius_change_speed;
-    if (delta_velocity < 0) {
+    if (delta_velocity <= 0) {
       Vec3D impulse = normal * (1 + AVE_HIT_E) * delta_velocity;
       a.velocity += impulse * k_a;
       b.velocity -= impulse * k_b;
@@ -203,10 +206,10 @@ void Simulation::collide_entities(Entity &a, Entity &b) {
 bool Simulation::collide_with_arena(Entity &en) {
   DaN arena_collision = dan_to_arena(en.position);
   double penetration = en.radius - arena_collision.distance;
-  if (penetration > 0) {
+  if (penetration >= 0) {
     en.position += arena_collision.normal * penetration;
     double velocity = en.velocity.dot(arena_collision.normal) - en.radius_change_speed;
-    if (velocity < 0)
+    if (velocity <= 0)
       en.velocity -= arena_collision.normal * (1 + en.coeff_restitution_arena) * velocity;
     return true;
   }
