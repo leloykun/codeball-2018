@@ -1,3 +1,7 @@
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+#pragma once
+#endif
+
 #ifndef _SIMULATION_CPP_
 #define _SIMULATION_CPP_
 
