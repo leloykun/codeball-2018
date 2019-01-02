@@ -21,12 +21,14 @@ void MyStrategy::act(
   this->robot_positions[me.id] = my_position_3d;
   this->robot_velocities[me.id] = {me.velocity_x, me.velocity_z, me.velocity_y};
 
-  if (this->prev_tick != game.current_tick and game.current_tick % 100 == 0)
-    std::cout<<game.current_tick<<"\n";
-  this->prev_tick = game.current_tick;
-
+  if (this->prev_tick != game.current_tick) {
+    if (game.current_tick % 100 == 0)
+      std::cout<<game.current_tick<<"\n";
+    renderer.clear();
+    this->prev_tick = game.current_tick;
+  }
+  
   this->run_simulation(game);
-  renderer.clear();
 
   attack = calc_intercept_spot(
     projected_ball_path,
@@ -112,6 +114,11 @@ void MyStrategy::init_strategy(
     this->roles.push_back(DEFAULT);
   }
 
+  // fix predictions
+  projected_ball_path = {};
+  projected_jump_paths = std::vector<Path>(int(game.robots.size()) + 1);
+  projected_robot_paths = std::vector<Path>(int(game.robots.size()) + 1);
+
   this->sim = Simulation(
     game.ball,
     game.robots,
@@ -128,8 +135,7 @@ void MyStrategy::run_simulation(const model::Game &game) {
     this->jump_speeds,
     game.current_tick);
 
-  /*projected_jump_paths = std::vector<Path>(int(game.robots.size()) + 1);
-  for (int id = 1; id <= int(game.robots.size()); ++id)
+  /*for (int id = 1; id <= int(game.robots.size()); ++id)
     projected_jump_paths[id] = sim.get_jump_path(sim.robots[id]);*/
 
   sim.run(
@@ -153,7 +159,8 @@ Target MyStrategy::calc_intercept_spot(
     if (goal_scored(ball_path[i].z))
       break;
 
-    double t = i * SIMULATION_PRECISION;
+    //double t = i * SIMULATION_PRECISION;
+    double t = ball_path[i].t;
 
     target_position.x = ball_path[i].x;
     if (to_shift_x) {
@@ -201,7 +208,8 @@ Target MyStrategy::calc_defend_spot(
     if (goal_scored(ball_path[i].z))
       break;
 
-    double t = i * SIMULATION_PRECISION;
+    //double t = i * SIMULATION_PRECISION;
+    double t = ball_path[i].t;
 
     if (ball_path[i].z <= -arena.depth/2.0) {
       target_position.x = ball_path[i].x;
@@ -274,10 +282,7 @@ double MyStrategy::calc_jump_speed(
     id
   };
   Path jump_path = sim.get_jump_path(en_attack);
-  for (int i = 1; i < int(jump_path.size()); ++i) {
-    Vec3D position = jump_path[i];
-    renderer.draw_sphere(position, 1, YELLOW, 0.5);
-  }
+  projected_jump_paths[id] = jump_path;
 
   TargetJump ball_intercept = calc_jump_intercept(
      jump_path,
@@ -403,13 +408,14 @@ std::string MyStrategy::custom_rendering() {
     else
       renderer.draw_line(start_pos, {start_pos.x, start_pos.z, 20}, 10, TEAL, 0.5);
   }
-  /*// predicted jump paths of the robots
+
+  // predicted jump paths of the robots
   for (int id = 1; id < int(projected_jump_paths.size()); ++id) {
     for (int i = 1; i < int(projected_jump_paths[id].size()); ++i) {
       Vec3D position = projected_jump_paths[id][i];
       renderer.draw_sphere(position, 1, YELLOW, 0.5);
     }
-  }*/
+  }
 
   /*
   // predicted defense paths of the robots

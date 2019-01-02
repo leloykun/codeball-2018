@@ -88,12 +88,25 @@ void Simulation::run(
   for (int id = 1; id <= num_robots; ++id)
     proj_robot_paths[id].push_back(robots[id].position);
 
+  double t = 0.0;
+
   for (int tick = 1; tick <= num_ticks; ++tick) {
     for (int microtick = 1; microtick <= 2; ++microtick) {
-      if (microtick == 2)
+      if (microtick == 2) {
         update(delta_time * (99/100.0));
-      else
+        t += delta_time * (99/100.0);
+      } else {
         update(delta_time * (1/100.0));
+        t += delta_time * (1/100.0);
+      }
+
+      ball.position.t = t;
+      proj_ball_path.push_back(ball.position);
+      //proj_ball_spec_path.push_back(ball_spec.position);
+      for (int id = 1; id < int(robots.size()); ++id) {
+        robots[id].position.t = t;
+        proj_robot_paths[id].push_back(robots[id].position);
+      }
     }
     this->sim_tick++;
   }
@@ -122,11 +135,6 @@ void Simulation::update(const double &delta_time) {
   }
   collide_with_arena(ball);
   //collide_with_arena(ball_spec);
-
-  proj_ball_path.push_back(ball.position);
-  //proj_ball_spec_path.push_back(ball_spec.position);
-  for (int id = 1; id < int(robots.size()); ++id)
-    proj_robot_paths[id].push_back(robots[id].position);
 }
 
 void Simulation::move(Entity &en, const double &delta_time) {
