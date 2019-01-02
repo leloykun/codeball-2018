@@ -27,7 +27,7 @@ void MyStrategy::act(
     renderer.clear();
     this->prev_tick = game.current_tick;
   }
-  
+
   this->run_simulation(game);
 
   attack = calc_intercept_spot(
