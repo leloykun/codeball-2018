@@ -80,7 +80,9 @@ void Simulation::set(
 void Simulation::run(
     const int &num_ticks,
     const double &delta_time) {
-  // initiate projections
+
+  ball_bounce_positions = {};
+
   proj_ball_path = {ball.position};
   //proj_ball_spec_path = {ball_spec.position};
 
@@ -90,7 +92,7 @@ void Simulation::run(
 
   double t = 0.0;
 
-  for (int tick = 0; tick < num_ticks; ++tick) {
+  for (int tick = 1; tick <= num_ticks; ++tick) {
     for (double partition_size : TICK_PARTITION) {
       update(delta_time * partition_size);
       t += delta_time * partition_size;
@@ -103,22 +105,24 @@ void Simulation::run(
       }
     }
     this->sim_tick++;
+    if (goal_scored(ball.position.z))
+      return;
   }
 }
 
 void Simulation::update(const double &delta_time) {
-  for (int id = 1; id <= num_robots; ++id) {
+  /*for (int id = 1; id <= num_robots; ++id) {
     move(robots[id], delta_time);
 
-    /*if (might_jump(robots[id]))
+    if (might_jump(robots[id]))
       jump(robots[id], rules.ROBOT_MAX_JUMP_SPEED, sim_tick);
     if (robots[id].last_sim_jump != this->sim_tick)
-      unjump(robots[id]);*/
-  }
+      unjump(robots[id]);
+  }*/
   move(ball, delta_time);
   //move(ball_spec, delta_time);
 
-  for (int i = 1; i <= num_robots; ++i)
+  /*for (int i = 1; i <= num_robots; ++i)
     for (int j = 1; j < i; ++j)
       collide_entities(robots[i], robots[j]);
   for (int id = 1; id <= num_robots; ++id) {
@@ -126,8 +130,9 @@ void Simulation::update(const double &delta_time) {
     //collide_entities(robots[id], ball_spec);
 
     collide_with_arena(robots[id]);
-  }
-  collide_with_arena(ball);
+  }*/
+  if (collide_with_arena(ball))
+    ball_bounce_positions.push_back(ball.position);
   //collide_with_arena(ball_spec);
 }
 
@@ -152,6 +157,12 @@ void Simulation::move(Entity &en, const double &delta_time) {
   en.velocity.y -= rules.GRAVITY * delta_time;
 }
 
+bool Simulation::goal_scored(const double &z) {
+  return std::fabs(z) > arena.depth/2.0 + rules.BALL_RADIUS;
+}
+
+
+/*
 bool Simulation::might_jump(Entity &en) {
   if (!is_touching_arena(en) or en.last_sim_jump == this->sim_tick)
     return false;
@@ -168,26 +179,30 @@ bool Simulation::might_jump(Entity &en) {
   }
   return false;
 }
+*/
 
-//void Simulation::jump(Entity &en, const double &jump_speed, const int &tick) {
-void Simulation::jump(Entity &en, const double &jump_speed, const int &tick) {
+void Simulation::jump(
+    Entity &en,
+    const double &jump_speed,
+    const int &on_tick) {
   en.radius = rules.ROBOT_MIN_RADIUS +
               (rules.ROBOT_MAX_RADIUS - rules.ROBOT_MIN_RADIUS) *
                  (jump_speed / rules.ROBOT_MAX_JUMP_SPEED);
   en.radius_change_speed = jump_speed;
-  en.last_sim_jump = tick;
+  en.last_sim_jump = on_tick;
 }
 
 void Simulation::unjump(Entity &en) {
-  en.radius = rules.ROBOT_MIN_RADIUS;
+  en.radius = rules.ROBOT_RADIUS;
   en.radius_change_speed = 0.0;
 }
+
 
 bool Simulation::is_touching_arena(Entity &en) {
   return en.radius >= dan_to_arena(en.position).distance;
 }
 
-void Simulation::collide_entities(Entity &a, Entity &b) {
+bool Simulation::collide_entities(Entity &a, Entity &b) {
   const double AVE_HIT_E = (rules.MIN_HIT_E + rules.MAX_HIT_E) / 2.0;
   // TODO
   Vec3D delta_position = b.position - a.position;
@@ -206,7 +221,9 @@ void Simulation::collide_entities(Entity &a, Entity &b) {
       a.velocity += impulse * k_a;
       b.velocity -= impulse * k_b;
     }
+    return true;
   }
+  return false;
 }
 
 bool Simulation::collide_with_arena(Entity &en) {

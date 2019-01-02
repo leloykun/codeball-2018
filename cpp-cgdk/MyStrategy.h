@@ -50,6 +50,9 @@ public:
   int prev_tick = -1;
   bool is_start_of_round = true;
 
+  std::vector<Vec3D> ball_bounce_positions;
+  Path speculative_ball_path;
+
   Path projected_ball_path;
   std::vector<Path> projected_robot_paths;
   std::vector<Path> projected_jump_paths;
@@ -96,6 +99,7 @@ public:
   double calc_jump_speed(
       const Vec3D &my_position,
       const Vec3D &ball_position,
+      const Vec3D &ball_velocity,
       const int &id);
   bool goal_scored(double z);
   TargetJump calc_jump_intercept(

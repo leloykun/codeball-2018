@@ -6,7 +6,11 @@
 
 #include <iostream>
 
-Path Simulation::get_jump_path(const Entity &en, const double &delta_time) {
+Path Simulation::get_jump_path(
+    const Entity &en,
+    const double &delta_time,
+    const double &jump_speed,
+    const int &jump_on_tick) {
   Entity enc = en;
 
   assert(enc.type == ALLY or enc.type == ENEMY);
@@ -19,6 +23,10 @@ Path Simulation::get_jump_path(const Entity &en, const double &delta_time) {
   for (int tick = 0; tick < 60; ++tick) {
     for (double partition_size : TICK_PARTITION) {
       move(enc, delta_time * partition_size);
+      if (tick == jump_on_tick)
+        jump(enc, jump_speed, tick);
+      else
+        unjump(enc);
       enc.radius = rules.ROBOT_MAX_RADIUS;
       enc.radius_change_speed = rules.ROBOT_MAX_JUMP_SPEED;
       if (collide_with_arena(enc))
@@ -33,6 +41,88 @@ Path Simulation::get_jump_path(const Entity &en, const double &delta_time) {
   return jump_path;
 }
 
+JumpBallIntercept Simulation::simulate_jump(
+    const Entity &en,
+    const Entity &ball,
+    const double &delta_time,
+    const double &jump_speed,
+    const int &jump_on_tick) {
+  Entity enc = en;          assert(enc.type == ALLY or enc.type == ENEMY);
+  Entity ballc = ball;      assert(ballc.type == BALL);
+
+  Path robot_path = {enc.position};
+  Path ball_path = {ballc.position};
+
+  double t = 0.0;
+  bool ball_is_intercepted = false;
+  Vec3D robot_intercept_position;
+  Vec3D ball_intercept_position;
+  bool can_score = false;
+
+  int num_collisions_with_arena = 0;
+
+  int ticks_left = 4*60;
+
+  for (int tick = 0; tick < 4*60; ++tick) {
+    for (double partition_size : TICK_PARTITION) {
+      t += delta_time * partition_size;
+      enc.position.t = t;
+      ballc.position.t = t;
+
+      move(enc, delta_time * partition_size);
+      if (tick == jump_on_tick)
+        jump(enc, jump_speed, tick);
+      else
+        unjump(enc);
+      move(ballc, delta_time * partition_size);
+
+      if (collide_entities(enc, ballc)) {
+        ball_is_intercepted = true;
+        robot_intercept_position = enc.position;
+        ball_intercept_position = ballc.position;
+      }
+      if (collide_with_arena(enc))
+        num_collisions_with_arena++;
+      collide_with_arena(ballc);
+
+      robot_path.push_back(enc.position);
+      ball_path.push_back(ballc.position);
+    }
+    ticks_left--;
+    if (ballc.position.z >= arena.depth/2.0 + rules.BALL_RADIUS) {
+      can_score = true;
+      ticks_left = 0;
+      break;
+    }
+    if (ball_is_intercepted or num_collisions_with_arena >= 2)
+      break;
+  }
+
+  for (int tick = 0; tick < ticks_left; ++tick) {
+    for (double partition_size : TICK_PARTITION) {
+      move(ballc, delta_time * partition_size);
+      collide_with_arena(ballc);
+
+      t += delta_time * partition_size;
+      ballc.position.t = t;
+      ball_path.push_back(ballc.position);
+    }
+    if (ballc.position.z >= arena.depth/2.0 + rules.BALL_RADIUS) {
+      can_score = true;
+      break;
+    }
+  }
+
+  return {
+      ball_is_intercepted,
+      can_score,
+      robot_path,
+      ball_path,
+      robot_intercept_position,
+      ball_intercept_position};
+}
+
+/*
 Path Simulation::get_defence_path(
     const Entity &en,
     const int &till_tick,
@@ -58,5 +148,6 @@ Path Simulation::get_defence_path(
 
   return jump_path;
 }
+*/
 
 #endif
