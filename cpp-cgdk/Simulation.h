@@ -12,6 +12,8 @@
 
 #include "PointVectors.h"
 
+const std::vector<double> TICK_PARTITION = {0.01, 0.01, 0.98};
+
 enum EntityType {ENEMY, BALL, ALLY};
 
 struct DaN {
@@ -80,7 +82,7 @@ struct Simulation {
   bool collide_with_arena(Entity &en);
 
   // ----------- Found in: SimPredict.cpp ---------------
-  Path get_jump_path(const Entity &en);
+  Path get_jump_path(const Entity &en, const double &delta_time);
   Path get_defence_path(
       const Entity &en,
       const int &till_tick,

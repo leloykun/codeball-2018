@@ -275,13 +275,13 @@ double MyStrategy::calc_jump_speed(
     robot_velocities[id],
     Vec3D(attack.velocity, 0.0),
     rules.ROBOT_RADIUS,
-    rules.ROBOT_MAX_JUMP_SPEED,
+    0.0,
     rules.ROBOT_MASS,
     rules.ROBOT_ARENA_E,
     ALLY,
     id
   };
-  Path jump_path = sim.get_jump_path(en_attack);
+  Path jump_path = sim.get_jump_path(en_attack, SIMULATION_PRECISION);
   projected_jump_paths[id] = jump_path;
 
   TargetJump ball_intercept = calc_jump_intercept(

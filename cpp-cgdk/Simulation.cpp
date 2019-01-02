@@ -90,16 +90,10 @@ void Simulation::run(
 
   double t = 0.0;
 
-  for (int tick = 1; tick <= num_ticks; ++tick) {
-    for (int microtick = 1; microtick <= 2; ++microtick) {
-      if (microtick == 2) {
-        update(delta_time * (99/100.0));
-        t += delta_time * (99/100.0);
-      } else {
-        update(delta_time * (1/100.0));
-        t += delta_time * (1/100.0);
-      }
-
+  for (int tick = 0; tick < num_ticks; ++tick) {
+    for (double partition_size : TICK_PARTITION) {
+      update(delta_time * partition_size);
+      t += delta_time * partition_size;
       ball.position.t = t;
       proj_ball_path.push_back(ball.position);
       //proj_ball_spec_path.push_back(ball_spec.position);

@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-Path Simulation::get_jump_path(const Entity &en) {
+Path Simulation::get_jump_path(const Entity &en, const double &delta_time) {
   Entity enc = en;
 
   assert(enc.type == ALLY or enc.type == ENEMY);
@@ -16,12 +16,9 @@ Path Simulation::get_jump_path(const Entity &en) {
 
   int num_collisions_with_arena = 0;
 
-  for (int tick = 1; tick <= 60; ++tick) {
-    for (int microtick = 1; microtick <= 2; ++microtick) {
-      if (microtick == 2)
-        move(enc, 1.0/60.0 * (99/100.0));
-      else
-        move(enc, 1.0/60.0 * (1/100.0));
+  for (int tick = 0; tick < 60; ++tick) {
+    for (double partition_size : TICK_PARTITION) {
+      move(enc, delta_time * partition_size);
       enc.radius = rules.ROBOT_MAX_RADIUS;
       enc.radius_change_speed = rules.ROBOT_MAX_JUMP_SPEED;
       if (collide_with_arena(enc))
