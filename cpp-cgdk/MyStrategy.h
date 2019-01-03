@@ -13,6 +13,7 @@
 #include <vector>
 #include <iostream>
 #include <cassert>
+#include <algorithm>
 /*
 #include <queue>
 #include <utility>
@@ -42,6 +43,14 @@ struct TargetJump {
   Vec3D robot_pos;
 };
 
+struct PositionAndDist {
+  Vec2D position;
+  double distance;
+  bool operator<(const PositionAndDist &other) const {
+    return this->distance < other.distance;
+  }
+};
+
 class MyStrategy : public Strategy {
   bool initialized = false;
   model::Rules rules;
@@ -51,6 +60,9 @@ class MyStrategy : public Strategy {
 
   Simulation sim;
   RenderUtil renderer;
+
+  // initialized after init_strategy()
+  std::vector<model::Robot> robots;
 public:
   MyStrategy();
 
@@ -65,6 +77,7 @@ public:
   std::vector<Path> projected_jump_paths;
 
   std::vector<int> ally_ids;
+  std::vector<int> enemy_ids;
 
   std::vector<Vec3D> target_positions = {Vec3D()};
   std::vector<Vec3D> target_velocities = {Vec3D()};
@@ -92,6 +105,10 @@ public:
       const Vec2D &my_position,
       const double &acceptable_height,
       const bool &to_shift_x);
+  PositionAndDist calc_optimal_intercept_target(
+      const Vec2D &p1,
+      const Vec2D &p2);
+  double min_dist_robots_to_line(const Vec2D &p1, const Vec2D &p2);
   Target calc_defend_spot(
       const Path &ball_path,
       const Vec2D &my_position);
@@ -101,8 +118,7 @@ public:
   Role calc_role(
       const int &id,
       const Vec3D &my_position,
-      const Vec3D &ball_position,
-      const std::vector<model::Robot> &robots);
+      const Vec3D &ball_position);
   double calc_jump_speed(
       const Vec3D &my_position,
       const Vec3D &ball_position,
@@ -116,8 +132,7 @@ public:
   bool is_duplicate_target(
       const Vec2D &target_position,
       const Vec2D &my_position,
-      const int &id,
-      const std::vector<model::Robot> &robots);
+      const int &id);
   bool is_attacker(const Role &role);
   bool is_defender(const Role &role);
   void set_action(

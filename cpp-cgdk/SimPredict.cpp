@@ -10,6 +10,8 @@
 
 #include <iostream>
 
+enum JumpState {BEFORE_JUMP, JUMPING, AFTER_JUMP};
+
 Path Simulation::get_jump_path(
     const Entity &en,
     const double &delta_time,
@@ -20,10 +22,9 @@ Path Simulation::get_jump_path(
   assert(enc.type == ALLY or enc.type == ENEMY);
 
   Path jump_path = {enc.position};
-  //std::cout<<enc.velocity.str()<<"|"<<enc.position.str()<<"|"<<enc.radius<<"\n";
 
   double t = 0.0;
-  int num_collisions_with_arena = 0;
+  JumpState state = (is_touching_arena(enc) ? BEFORE_JUMP : JUMPING);
 
   for (int tick = 0; tick < 60; ++tick) {
     for (double partition_size : TICK_PARTITION) {
@@ -34,16 +35,17 @@ Path Simulation::get_jump_path(
         unjump(enc);
       enc.radius = rules.ROBOT_MAX_RADIUS;
       enc.radius_change_speed = rules.ROBOT_MAX_JUMP_SPEED;
-      if (collide_with_arena(enc))
-        num_collisions_with_arena++;
-      //std::cout<<enc.velocity.str()<<"|"<<enc.position.str()<<"|"<<enc.radius<<"\n";
+      if (collide_with_arena(enc) and state == JUMPING)
+        state = AFTER_JUMP;
+      else if (state != AFTER_JUMP)
+        state = JUMPING;
       t += delta_time * partition_size;
     }
 
     enc.position.t = t;
     jump_path.push_back(enc.position);
 
-    if (num_collisions_with_arena == 2)
+    if (state == AFTER_JUMP)
       break;
   }
 
@@ -62,17 +64,16 @@ JumpBallIntercept Simulation::simulate_jump(
   Path robot_path = {enc.position};
   Path ball_path = {ballc.position};
 
-  double t = 0.0;
   bool ball_is_intercepted = false;
   Vec3D robot_intercept_position;
   Vec3D ball_intercept_position;
   bool can_score = false;
 
-  int num_collisions_with_arena = 0;
-
+  double t = 0.0;
+  JumpState state = (is_touching_arena(enc) ? BEFORE_JUMP : JUMPING);
   int ticks_left = 4*60;
 
-  for (int tick = 0; tick < 4*60; ++tick) {
+  for (int tick = 0; tick < ticks_left; ++tick) {
     for (double partition_size : TICK_PARTITION) {
       move(enc, delta_time * partition_size);
       if (tick == jump_on_tick)
@@ -86,8 +87,10 @@ JumpBallIntercept Simulation::simulate_jump(
         robot_intercept_position = enc.position;
         ball_intercept_position = ballc.position;
       }
-      if (collide_with_arena(enc))
-        num_collisions_with_arena++;
+      if (collide_with_arena(enc) and state == JUMPING)
+        state = AFTER_JUMP;
+      else if (state != AFTER_JUMP)
+        state = JUMPING;
       collide_with_arena(ballc);
 
       t += delta_time * partition_size;
@@ -105,7 +108,7 @@ JumpBallIntercept Simulation::simulate_jump(
       ticks_left = 0;
       break;
     }
-    if (ball_is_intercepted or num_collisions_with_arena >= 2)
+    if (ball_is_intercepted or state == AFTER_JUMP)
       break;
   }
 

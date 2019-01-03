@@ -18,7 +18,10 @@ struct Vec2D {
   Vec2D(double x, double z) : x(x), z(z) {}
   void set(double _x, double _z) { x=_x; z=_z; }
   double len() const { return std::sqrt(x*x + z*z); }
-  Vec2D normalize() const { double l=len(); return {x/l, z/l}; }
+  Vec2D normalize() const {
+    double l=len();
+    if (l < EPS)  return {x, z};
+    return {x/l, z/l}; }
   std::string str() const {
     return "("+std::to_string(x)+","+
                std::to_string(z)+")"; }

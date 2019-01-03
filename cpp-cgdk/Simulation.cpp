@@ -110,7 +110,7 @@ void Simulation::run(
     }
     ball.position.t = t;
     proj_ball_path.push_back(ball.position);
-    
+
     this->sim_tick++;
     if (goal_scored(ball.position.z))
       return;
