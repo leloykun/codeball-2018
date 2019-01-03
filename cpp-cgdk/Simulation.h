@@ -11,8 +11,8 @@
 #include "model/Robot.h"
 #include "PointVectors.h"
 
-// const std::vector<double> TICK_PARTITION = {0.01, 0.01, 0.18, 0.20, 0.20, 0.20, 0.20};
-const std::vector<double> TICK_PARTITION = {0.01, 0.01, 0.98};
+const std::vector<double> TICK_PARTITION = {0.01, 0.01, 0.18, 0.20, 0.20, 0.20, 0.20};
+// const std::vector<double> TICK_PARTITION = {0.01, 0.01, 0.98};
 
 enum EntityType {ENEMY, BALL, ALLY};
 
