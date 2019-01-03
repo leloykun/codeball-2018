@@ -311,6 +311,17 @@ double MyStrategy::calc_jump_speed(
     ALLY,
     id
   };
+  Entity en_attack_aggro = {
+    robot_positions[id],
+    robot_velocities[id],
+    Vec3D(attack_aggro.velocity, 0.0),
+    rules.ROBOT_RADIUS,
+    0.0,
+    rules.ROBOT_MASS,
+    rules.ROBOT_ARENA_E,
+    ALLY,
+    id
+  };
   /*
   Entity en_ball {
     ball_position,
@@ -362,29 +373,46 @@ double MyStrategy::calc_jump_speed(
   }
   */
 
-  Path jump_path = sim.get_jump_path(
-      en_attack,
-      SIMULATION_PRECISION,
-      rules.ROBOT_MAX_JUMP_SPEED);
-  projected_jump_paths[id] = jump_path;
+  if (role == AGGRESSIVE_DEFENDER) {
+    Path jump_path = sim.get_jump_path(
+        en_attack_aggro,
+        SIMULATION_PRECISION,
+        rules.ROBOT_MAX_JUMP_SPEED);
+    projected_jump_paths[id] = jump_path;
 
-  TargetJump ball_intercept = calc_jump_intercept(
-     jump_path,
-     projected_ball_path,
-     my_position);
+    TargetJump ball_intercept = calc_jump_intercept(
+       jump_path,
+       projected_ball_path,
+       my_position);
 
-  if (not ball_intercept.exists)
-    return 0.0;
+    if (not ball_intercept.exists)
+      return 0.0;
 
-  if ((role == AGGRESSIVE_DEFENDER and robot_velocities[id].len() > rules.ROBOT_MAX_GROUND_SPEED-1) or
-      (role == DEFENDER and ball_intercept.robot_pos.z <= CRITICAL_BORDER) or
-      role == DEFAULT)
-    return rules.ROBOT_MAX_JUMP_SPEED;
+    if (robot_velocities[id].len() > rules.ROBOT_MAX_GROUND_SPEED-1)
+      return rules.ROBOT_MAX_JUMP_SPEED;
+  } else {
+    Path jump_path = sim.get_jump_path(
+        en_attack,
+        SIMULATION_PRECISION,
+        rules.ROBOT_MAX_JUMP_SPEED);
+    projected_jump_paths[id] = jump_path;
+
+    TargetJump ball_intercept = calc_jump_intercept(
+       jump_path,
+       projected_ball_path,
+       my_position);
+
+    if (not ball_intercept.exists)
+      return 0.0;
+
+    if ((role == DEFENDER and ball_intercept.robot_pos.z <= CRITICAL_BORDER) or
+        role == DEFAULT)
+      return rules.ROBOT_MAX_JUMP_SPEED;
+  }
 
   // default behavior
   if (my_position.z < ball_position.z and dist_to_ball < acceptable_dist)
     return rules.ROBOT_MAX_JUMP_SPEED;
-
   return 0.0;
 }
 
