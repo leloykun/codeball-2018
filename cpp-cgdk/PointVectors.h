@@ -8,7 +8,6 @@
 #include <cmath>
 #include <string>
 #include <vector>
-#include <utility>
 
 const double EPS = 1e-5;
 
@@ -92,7 +91,6 @@ inline double clamp(double a, double min_val, double max_val) {
   return std::min(std::max(a, min_val), max_val);  }
 
 typedef std::vector<Vec3D> Path;
-typedef std::pair<Path, Path> PathPair;
 
 struct JumpBallIntercept {
   bool exists;
