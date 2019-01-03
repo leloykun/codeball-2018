@@ -311,6 +311,7 @@ double MyStrategy::calc_jump_speed(
     ALLY,
     id
   };
+  /*
   Entity en_ball {
     ball_position,
     ball_velocity,
@@ -359,6 +360,7 @@ double MyStrategy::calc_jump_speed(
     if (my_position.z < ball_position.z and dist_to_ball < acceptable_dist)
       return possible_jump_speeds.top().second;
   }
+  */
 
   Path jump_path = sim.get_jump_path(
       en_attack,
@@ -374,7 +376,7 @@ double MyStrategy::calc_jump_speed(
   if (not ball_intercept.exists)
     return 0.0;
 
-  if (role == AGGRESSIVE_DEFENDER or
+  if ((role == AGGRESSIVE_DEFENDER and robot_velocities[id].len() > rules.ROBOT_MAX_GROUND_SPEED-1) or
       (role == DEFENDER and ball_intercept.robot_pos.z <= CRITICAL_BORDER) or
       role == DEFAULT)
     return rules.ROBOT_MAX_JUMP_SPEED;

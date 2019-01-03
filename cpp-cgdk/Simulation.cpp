@@ -97,22 +97,20 @@ void Simulation::run(
   double t = 0.0;
 
   for (int tick = 1; tick <= num_ticks; ++tick) {
-    /*for (double partition_size : TICK_PARTITION) {
+    for (double partition_size : TICK_PARTITION) {
       update(delta_time * partition_size);
       t += delta_time * partition_size;
-      ball.position.t = t;
-      proj_ball_path.push_back(ball.position);
+      /*
       //proj_ball_spec_path.push_back(ball_spec.position);
       for (int id = 1; id < int(robots.size()); ++id) {
         robots[id].position.t = t;
         proj_robot_paths[id].push_back(robots[id].position);
       }
-    }*/
-    update(delta_time);
-    t += delta_time;
+      */
+    }
     ball.position.t = t;
     proj_ball_path.push_back(ball.position);
-
+    
     this->sim_tick++;
     if (goal_scored(ball.position.z))
       return;
@@ -213,8 +211,6 @@ bool Simulation::is_touching_arena(Entity &en) {
 
 bool Simulation::collide_entities(Entity &a, Entity &b) {
   const double AVE_HIT_E = (rules.MIN_HIT_E + rules.MAX_HIT_E) / 2.0;
-  const double COLLISION_E = AVE_HIT_E;
-  // const double COLLISION_E = rules.MAX_HIT_E;
   // TODO
   Vec3D delta_position = b.position - a.position;
   double distance = delta_position.len();
@@ -228,7 +224,7 @@ bool Simulation::collide_entities(Entity &a, Entity &b) {
     double delta_velocity = (b.velocity - a.velocity).dot(normal) -
                             b.radius_change_speed - a.radius_change_speed;
     if (delta_velocity < 0) {
-      Vec3D impulse = normal * (1 + COLLISION_E) * delta_velocity;
+      Vec3D impulse = normal * (1 + AVE_HIT_E) * delta_velocity;
       a.velocity += impulse * k_a;
       b.velocity -= impulse * k_b;
     }
