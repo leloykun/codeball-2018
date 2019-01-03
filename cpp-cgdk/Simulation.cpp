@@ -213,8 +213,8 @@ bool Simulation::is_touching_arena(Entity &en) {
 
 bool Simulation::collide_entities(Entity &a, Entity &b) {
   const double AVE_HIT_E = (rules.MIN_HIT_E + rules.MAX_HIT_E) / 2.0;
-  // const double COLLISION_E = AVE_HIT_E;
-  const double COLLISION_E = rules.MAX_HIT_E;
+  const double COLLISION_E = AVE_HIT_E;
+  // const double COLLISION_E = rules.MAX_HIT_E;
   // TODO
   Vec3D delta_position = b.position - a.position;
   double distance = delta_position.len();
