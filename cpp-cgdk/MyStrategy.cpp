@@ -171,7 +171,6 @@ Target MyStrategy::calc_intercept_spot(
     if (goal_scored(ball_path[i].z))
       break;
 
-    //double t = i * SIMULATION_PRECISION;
     double t = ball_path[i].t;
 
     target_position.x = ball_path[i].x;
@@ -220,7 +219,6 @@ Target MyStrategy::calc_defend_spot(
     if (goal_scored(ball_path[i].z))
       break;
 
-    //double t = i * SIMULATION_PRECISION;
     double t = ball_path[i].t;
 
     if (ball_path[i].z <= -arena.depth/2.0) {
@@ -298,6 +296,7 @@ double MyStrategy::calc_jump_speed(
     const Vec3D &ball_velocity,
     const int &id) {
   double dist_to_ball = (my_position - ball_position).len();
+  double acceptable_dist = rules.BALL_RADIUS + 6*rules.ROBOT_MAX_RADIUS;
 
   Role role = roles[id];
 
@@ -312,6 +311,55 @@ double MyStrategy::calc_jump_speed(
     ALLY,
     id
   };
+  Entity en_ball {
+    ball_position,
+    ball_velocity,
+    Vec3D(),
+    rules.BALL_RADIUS,
+    0.0,
+    rules.BALL_MASS,
+    rules.BALL_ARENA_E,
+    BALL,
+    -1
+  };
+
+  if (role == ATTACKER) {
+    JumpTimePQ possible_jump_speeds;
+    possible_jump_speeds.push({1e9, 0.0});
+    JumpTimePQ scoring_jump_speeds;
+
+    const int NUM_PARTS = 5;
+    for (int part = 0; part <= NUM_PARTS; ++part) {
+      double jump_speed = (1.0 * part / NUM_PARTS) * rules.ROBOT_MAX_JUMP_SPEED;
+      JumpBallIntercept intercept = sim.simulate_jump(
+          en_attack,
+          en_ball,
+          SIMULATION_PRECISION,
+          jump_speed);
+
+      renderer.draw_ball_path(intercept.robot_path, 1, BLACK, 0.25);
+
+      if (not intercept.exists)
+        continue;
+      if (intercept.robot_pos.z < my_position.z or
+          intercept.ball_pos.z < intercept.robot_pos.z or
+          intercept.ball_pos.y < intercept.robot_pos.y)
+        continue;
+
+      projected_jump_paths[id] = intercept.robot_path;
+      speculative_ball_path = intercept.ball_path;
+
+      possible_jump_speeds.push({intercept.robot_pos.t, jump_speed});
+      if (intercept.can_score)
+        scoring_jump_speeds.push({intercept.robot_pos.t, jump_speed});
+    }
+
+    if (not scoring_jump_speeds.empty())
+      return scoring_jump_speeds.top().second;
+    if (my_position.z < ball_position.z and dist_to_ball < acceptable_dist)
+      return possible_jump_speeds.top().second;
+  }
+
   Path jump_path = sim.get_jump_path(
       en_attack,
       SIMULATION_PRECISION,
@@ -331,8 +379,7 @@ double MyStrategy::calc_jump_speed(
       role == DEFAULT)
     return rules.ROBOT_MAX_JUMP_SPEED;
 
-  double acceptable_dist = rules.BALL_RADIUS + 6*rules.ROBOT_MAX_RADIUS;
-
+  // default behavior
   if (my_position.z < ball_position.z and dist_to_ball < acceptable_dist)
     return rules.ROBOT_MAX_JUMP_SPEED;
 
@@ -347,7 +394,8 @@ TargetJump MyStrategy::calc_jump_intercept(
     const Path &robot_path,
     const Path &ball_path,
     const Vec3D &my_position) {
-  for (int i = 0; i < std::min(int(robot_path.size()), int(ball_path.size())); ++i)
+  for (int i = 0; i < std::min(int(robot_path.size()), int(ball_path.size())); ++i) {
+    assert(std::fabs(robot_path[i].t - ball_path[i].t) < EPS);
     if ((ball_path[i] - robot_path[i]).len() <= rules.BALL_RADIUS + rules.ROBOT_RADIUS) {
       if (ball_path[i].z >= my_position.z and
           ball_path[i].z >= robot_path[i].z + 0.5 and
@@ -356,6 +404,7 @@ TargetJump MyStrategy::calc_jump_intercept(
       } else
         return {false, Vec3D(), Vec3D()};
     }
+  }
   return {false, Vec3D(), Vec3D()};
 }
 

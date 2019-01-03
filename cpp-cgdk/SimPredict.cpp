@@ -22,6 +22,7 @@ Path Simulation::get_jump_path(
   Path jump_path = {enc.position};
   //std::cout<<enc.velocity.str()<<"|"<<enc.position.str()<<"|"<<enc.radius<<"\n";
 
+  double t = 0.0;
   int num_collisions_with_arena = 0;
 
   for (int tick = 0; tick < 60; ++tick) {
@@ -35,9 +36,13 @@ Path Simulation::get_jump_path(
       enc.radius_change_speed = rules.ROBOT_MAX_JUMP_SPEED;
       if (collide_with_arena(enc))
         num_collisions_with_arena++;
-      jump_path.push_back(enc.position);
       //std::cout<<enc.velocity.str()<<"|"<<enc.position.str()<<"|"<<enc.radius<<"\n";
+      t += delta_time * partition_size;
     }
+
+    enc.position.t = t;
+    jump_path.push_back(enc.position);
+
     if (num_collisions_with_arena == 2)
       break;
   }
@@ -69,10 +74,6 @@ JumpBallIntercept Simulation::simulate_jump(
 
   for (int tick = 0; tick < 4*60; ++tick) {
     for (double partition_size : TICK_PARTITION) {
-      t += delta_time * partition_size;
-      enc.position.t = t;
-      ballc.position.t = t;
-
       move(enc, delta_time * partition_size);
       if (tick == jump_on_tick)
         jump(enc, jump_speed, tick);
@@ -89,12 +90,18 @@ JumpBallIntercept Simulation::simulate_jump(
         num_collisions_with_arena++;
       collide_with_arena(ballc);
 
-      robot_path.push_back(enc.position);
-      ball_path.push_back(ballc.position);
+      t += delta_time * partition_size;
     }
+
+    enc.position.t = t;
+    ballc.position.t = t;
+    robot_path.push_back(enc.position);
+    ball_path.push_back(ballc.position);
+
     ticks_left--;
-    if (ballc.position.z >= arena.depth/2.0 + rules.BALL_RADIUS) {
-      can_score = true;
+    if (goal_scored(ballc.position.z)) {
+      if (ballc.position.z >= arena.depth/2.0 + rules.BALL_RADIUS)
+        can_score = true;
       ticks_left = 0;
       break;
     }
@@ -108,11 +115,14 @@ JumpBallIntercept Simulation::simulate_jump(
       collide_with_arena(ballc);
 
       t += delta_time * partition_size;
-      ballc.position.t = t;
-      ball_path.push_back(ballc.position);
     }
-    if (ballc.position.z >= arena.depth/2.0 + rules.BALL_RADIUS) {
-      can_score = true;
+
+    ballc.position.t = t;
+    ball_path.push_back(ballc.position);
+
+    if (goal_scored(ballc.position.z)) {
+      if (ballc.position.z >= arena.depth/2.0 + rules.BALL_RADIUS)
+        can_score = true;
       break;
     }
   }

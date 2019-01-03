@@ -12,6 +12,12 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <queue>
+#include <utility>
+#include <cassert>
+
+typedef std::pair<double, double> JumpTime;
+typedef std::priority_queue<JumpTime, std::vector<JumpTime>, std::greater<JumpTime> > JumpTimePQ;
 
 const double SIMULATION_DURATION = 4;
 const double SIMULATION_PRECISION = 1/60.0;
