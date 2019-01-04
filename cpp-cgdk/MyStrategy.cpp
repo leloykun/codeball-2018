@@ -177,7 +177,7 @@ Target MyStrategy::calc_intercept_spot(
       break;
 
     double t = ball_path[i].t;
-
+    /*
     Vec2D ball_position = {ball_path[i].x, ball_path[i].z};
 
     double start_x = -(arena.goal_width/2.0-arena.bottom_radius);
@@ -194,32 +194,11 @@ Target MyStrategy::calc_intercept_spot(
           lim));
     }
 
-    /*
-    Vec2D center_lim = {0.0, arena.depth/2.0};
-    Vec2D left_lim = {(arena.goal_width/2.0-arena.bottom_radius), arena.depth/2.0};
-    Vec2D right_lim = {-(arena.goal_width/2.0-arena.bottom_radius), arena.depth/2.0};
-    Vec2D ave_lim = Vec2D(0.0, 0.0);
-    for (int id : this->enemy_ids)
-      ave_lim += Vec2D(robots[id].x, robots[id].z) * (1.0 / enemy_ids.size());
-
-    possible_targets.push_back(calc_optimal_intercept_target(
-        ball_position,
-        center_lim));
-    possible_targets.push_back(calc_optimal_intercept_target(
-        ball_position,
-        left_lim));
-    possible_targets.push_back(calc_optimal_intercept_target(
-        ball_position,
-        right_lim));
-    possible_targets.push_back(calc_optimal_intercept_target(
-        ball_position,
-        ave_lim));
-    */
     std::sort(possible_targets.begin(), possible_targets.end());
 
     target_position = possible_targets.back().position;
+    */
 
-    /*
     target_position.x = ball_path[i].x;
     if (to_shift_x) {
       if (target_position.x < - (arena.goal_width/2.0 - arena.goal_top_radius))
@@ -228,30 +207,6 @@ Target MyStrategy::calc_intercept_spot(
         target_position.x += rules.ROBOT_RADIUS;
     }
     target_position.z = ball_path[i].z - 1.5 * rules.ROBOT_RADIUS;
-
-    renderer.draw_sphere(
-        Vec3D(ball_position + (ball_position - left_lim).normalize() * (rules.BALL_RADIUS+rules.ROBOT_RADIUS), 0.0),
-        1,
-        VIOLET,
-        1.0);
-    renderer.draw_sphere(
-        Vec3D(ball_position + (ball_position - right_lim).normalize() * (rules.BALL_RADIUS+rules.ROBOT_RADIUS), 0.0),
-        1,
-        VIOLET,
-        1.0);
-    renderer.draw_line(
-        Vec3D(ball_position, 2.0),
-        Vec3D(left_lim, 2.0),
-        20,
-        TEAL,
-        1);
-    renderer.draw_line(
-        Vec3D(ball_position, 2.0),
-        Vec3D(right_lim, 2.0),
-        20,
-        VIOLET,
-        1);
-    */
 
     // If ball will not leave arena boundary
     // (collision with the arena would happen, but we are not considering it),
