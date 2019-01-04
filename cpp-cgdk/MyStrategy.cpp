@@ -279,7 +279,7 @@ PositionAndDist MyStrategy::calc_optimal_intercept_target(
     const Vec2D &p2) {
   Vec2D target = p1 + (p1 - p2).normalize() * (rules.BALL_RADIUS + rules.ROBOT_RADIUS);
   double robot_dist = robots_dist_to_line_segment(target, p2);
-
+  /*
   //std::cout<<"target: "<<p2.str()<<" || dist: "<<robot_dist<<"\n";
   renderer.draw_sphere(
       Vec3D(p2, 0.0),
@@ -292,6 +292,7 @@ PositionAndDist MyStrategy::calc_optimal_intercept_target(
       20,
       VIOLET,
       1);
+  */
   return {target, robot_dist};
 }
 
