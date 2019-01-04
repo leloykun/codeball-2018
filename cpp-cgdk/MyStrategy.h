@@ -107,7 +107,8 @@ public:
       const bool &to_shift_x);
   PositionAndDist calc_optimal_intercept_target(
       const Vec2D &p1,
-      const Vec2D &p2);
+      const Vec2D &p2,
+      const double &offset);
   double robots_dist_to_line_segment(const Vec2D &p1, const Vec2D &p2);
   Target calc_defend_spot(
       const Path &ball_path,
@@ -115,6 +116,7 @@ public:
   Target get_default_strat(
       const Vec2D &my_position,
       const Vec2D &ball_position);
+  int get_id_nearest_to(const Vec2D &position);
   Role calc_role(
       const int &id,
       const Vec3D &my_position,

@@ -191,7 +191,8 @@ Target MyStrategy::calc_intercept_spot(
       possible_targets.push_back(
         calc_optimal_intercept_target(
           ball_position,
-          lim));
+          lim,
+          rules.BALL_RADIUS + rules.ROBOT_RADIUS));
     }
 
     std::sort(possible_targets.begin(), possible_targets.end());
@@ -231,8 +232,9 @@ Target MyStrategy::calc_intercept_spot(
 
 PositionAndDist MyStrategy::calc_optimal_intercept_target(
     const Vec2D &p1,
-    const Vec2D &p2) {
-  Vec2D target = p1 + (p1 - p2).normalize() * (rules.BALL_RADIUS + rules.ROBOT_RADIUS);
+    const Vec2D &p2,
+    const double &offset) {
+  Vec2D target = p1 + (p1 - p2).normalize() * offset;
   double robot_dist = robots_dist_to_line_segment(target, p2);
   /*
   //std::cout<<"target: "<<p2.str()<<" || dist: "<<robot_dist<<"\n";
@@ -307,15 +309,40 @@ Target MyStrategy::calc_defend_spot(
 Target MyStrategy::get_default_strat(
     const Vec2D &my_position,
     const Vec2D &ball_position) {
-  Vec2D target_position(ball_bounce_positions[0].x,
-                        ball_bounce_positions[0].z - 2*rules.BALL_RADIUS);
-  if (target_position.x < - (arena.goal_width/2.0 - arena.goal_top_radius))
-    target_position.x -= rules.ROBOT_RADIUS;
-  else if (target_position.x > arena.goal_width/2.0 - arena.goal_top_radius)
-    target_position.x += rules.ROBOT_RADIUS;
-  Vec2D target_velocity = (target_position - my_position) *
+  Vec2D target_position;
+  Vec2D target_velocity;
+
+  Vec2D first_bounce(ball_bounce_positions[0].x, ball_bounce_positions[0].z);
+
+  int id = get_id_nearest_to(first_bounce);
+  if (not this->robots[id].is_teammate and this->robots[id].z > ball_position.z) {
+    Vec2D enemy_pos = Vec2D(this->robots[id].x, this->robots[id].z);
+    PositionAndDist res = calc_optimal_intercept_target(first_bounce, enemy_pos, 2*rules.BALL_RADIUS);
+    target_position = res.position;
+  } else {
+    target_position = Vec2D(ball_bounce_positions[0].x,
+                            ball_bounce_positions[0].z - 2*rules.BALL_RADIUS);
+    if (target_position.x < - (arena.goal_width/2.0 - arena.bottom_radius))
+      target_position.x -= rules.ROBOT_RADIUS;
+    else if (target_position.x > arena.goal_width/2.0 - arena.bottom_radius)
+      target_position.x += rules.ROBOT_RADIUS;
+  }
+  target_velocity = Vec2D(target_position - my_position) *
                            rules.ROBOT_MAX_GROUND_SPEED;
   return {true, target_position, target_velocity};
+}
+
+int MyStrategy::get_id_nearest_to(const Vec2D &position) {
+  int nearest_id = -1;
+  double nearest_dist = 1e9;
+  for (int id = 1; id <= int(this->robots.size()); ++id) {
+    double dist = (Vec2D(this->robots[id].x, this->robots[id].z) - position).len();
+    if (dist < nearest_dist) {
+      nearest_id = id;
+      nearest_dist = dist;
+    }
+  }
+  return nearest_id;
 }
 
 Role MyStrategy::calc_role(
