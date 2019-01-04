@@ -108,7 +108,7 @@ public:
   PositionAndDist calc_optimal_intercept_target(
       const Vec2D &p1,
       const Vec2D &p2);
-  double min_dist_robots_to_line(const Vec2D &p1, const Vec2D &p2);
+  double robots_dist_to_line_segment(const Vec2D &p1, const Vec2D &p2);
   Target calc_defend_spot(
       const Path &ball_path,
       const Vec2D &my_position);

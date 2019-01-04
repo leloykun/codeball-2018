@@ -278,9 +278,9 @@ PositionAndDist MyStrategy::calc_optimal_intercept_target(
     const Vec2D &p1,
     const Vec2D &p2) {
   Vec2D target = p1 + (p1 - p2).normalize() * (rules.BALL_RADIUS + rules.ROBOT_RADIUS);
-  double robot_dist = min_dist_robots_to_line(target, p2);
-  /*
-  std::cout<<"target: "<<p2.str()<<" || dist: "<<robot_dist<<"\n";
+  double robot_dist = robots_dist_to_line_segment(target, p2);
+
+  //std::cout<<"target: "<<p2.str()<<" || dist: "<<robot_dist<<"\n";
   renderer.draw_sphere(
       Vec3D(p2, 0.0),
       1,
@@ -292,29 +292,30 @@ PositionAndDist MyStrategy::calc_optimal_intercept_target(
       20,
       VIOLET,
       1);
-  */
   return {target, robot_dist};
 }
 
-double MyStrategy::min_dist_robots_to_line(const Vec2D &p1, const Vec2D &p2) {
-  double a = p2.z - p1.z;
-  double b = p2.x - p1.x;
-  double c = p2.x * p1.z - p2.z * p1.x;
+double MyStrategy::robots_dist_to_line_segment(
+    const Vec2D &p1,
+    const Vec2D &p2) {
   double dist = 1e9;
+
+  Vec2D dir = p2 - p1;
+  double hypo_squared = dir.len_sqr();
+
   for (int id : this->enemy_ids) {
-    double dist_to_line = std::fabs(a*robots[id].x - b*robots[id].z + c) / std::sqrt(a*a + b*b);
-    /*
-    double x = (b*(b*robots[id].x - a*robots[id].z) - a*c) / (a*a+b*b);
-    double z = (a*(a*robots[id].z - b*robots[id].x) + b*c) / (a*a+b*b);
-    renderer.draw_line(
-        Vec3D(robots[id].x, robots[id].z, robots[id].y),
-        Vec3D(x, z, 2.0),
-        20,
-        TEAL,
-        1);
-    */
+    Vec2D robot_pos(robots[id].x, robots[id].z);
+
+    double factor = (robot_pos - p1).dot(dir) / hypo_squared;
+    factor = clamp(factor, 0.0, 1.0);
+
+    Vec2D projection = p1 + dir * factor;
+
+    double dist_to_line = (robot_pos - projection).len();
+
     dist = std::min(dist, dist_to_line);
   }
+
   return dist;
 }
 
