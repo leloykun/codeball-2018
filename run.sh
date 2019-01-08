@@ -1,4 +1,4 @@
-make -C cpp-cgdk/build
+make -C cpp-cgdk/build || exit 1
 echo DONE MAKING!
 
 codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p2-name PREV-STRAT --p2 tcp-31002 --results-file res.txt --duration 7200 --no-countdown &
