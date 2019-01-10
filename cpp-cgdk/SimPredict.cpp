@@ -58,13 +58,14 @@ void Simulation::calc_ball_path(
 
 void Simulation::calc_robot_path(
     Entity &robot,
+    Path &robot_path,
     const double &delta_time,
     const double &jump_speed,
     const JumpMethod &jump_method,
     const int &jump_on_tick,
     const double &jump_on_speed) {
   this->calc_robot_path(
-    robot.projected_path,
+    robot_path,
     robot.lighten(),
     delta_time,
     jump_speed,

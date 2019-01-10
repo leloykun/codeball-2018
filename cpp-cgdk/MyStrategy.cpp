@@ -96,10 +96,19 @@ void MyStrategy::run_simulation(const model::Game &game) {
   for (int id : this->ally_ids)
     this->sim.calc_robot_path(
       this->robots[id],
+      this->robots[id].projected_jump_path,
       SIMULATION_PRECISION,
       RULES.ROBOT_MAX_JUMP_SPEED,
       BY_TICK,
       0);
+
+  for (int id : this->ally_ids)
+    this->sim.calc_robot_path(
+      this->robots[id],
+      this->robots[id].projected_path,
+      SIMULATION_PRECISION,
+      RULES.ROBOT_MAX_JUMP_SPEED,
+      DONT_JUMP);
 }
 
 void MyStrategy::calc_action(model::Action &action, const int &num_rays) {
@@ -450,7 +459,7 @@ std::tuple<Vec2D&, std::vector<Vec2D>& > MyStrategy::calc_targets_from(
 
 double MyStrategy::calc_jump_speed() {
   auto [exists, ball_pos, robot_pos] = calc_valid_jump_intercept(
-     this->me->projected_path,
+     this->me->projected_jump_path,
      this->ball.projected_path,
      this->me->position);
 
@@ -514,7 +523,7 @@ std::string MyStrategy::custom_rendering() {
 
   // draw jump paths of the robots
   for (auto &[id, robot] : this->robots) {
-    this->renderer.draw_path(robot.projected_path, 0.5, YELLOW, 0.5, false);
+    this->renderer.draw_path(robot.projected_jump_path, 0.5, YELLOW, 0.5, false);
     this->renderer.draw_line(
       robot.position,
       Vec3D(robot.position.x, robot.position.z, ARENA.height),

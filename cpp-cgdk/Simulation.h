@@ -59,6 +59,7 @@ struct Simulation {
       const double &delta_time);
   void calc_robot_path(
       Entity &robot,
+      Path &robot_path,
       const double &delta_time,
       const double &jump_speed,
       const JumpMethod &jump_method = BY_TICK,
