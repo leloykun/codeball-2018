@@ -2,25 +2,25 @@ codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p1 tcp-31001 \
   --p2-name PREV-STRAT --p2 tcp-31002 --results-file res1.txt --no-countdown \
   --noshow --log-file game1.log &
 sleep 1; cpp-cgdk/versions/MyStrategy_v30_nodebug 127.0.0.1 31001 1 &
-sleep 1; cpp-cgdk/versions/MyStrategy_v31 127.0.0.1 31002 2 &
+sleep 1; cpp-cgdk/versions/MyStrategy_v32 127.0.0.1 31002 2 &
 
 codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p1 tcp-31003 \
   --p2-name PREV-STRAT --p2 tcp-31004 --results-file res2.txt --no-countdown \
   --noshow --log-file game2.log &
 sleep 1; cpp-cgdk/versions/MyStrategy_v30_nodebug 127.0.0.1 31003 3 &
-sleep 1; cpp-cgdk/versions/MyStrategy_v31 127.0.0.1 31004 4 &
+sleep 1; cpp-cgdk/versions/MyStrategy_v32 127.0.0.1 31004 4 &
 
 codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p1 tcp-31005 \
   --p2-name PREV-STRAT --p2 tcp-31006 --results-file res3.txt --no-countdown \
   --noshow --log-file game3.log &
 sleep 1; cpp-cgdk/versions/MyStrategy_v30_nodebug 127.0.0.1 31005 5 &
-sleep 1; cpp-cgdk/versions/MyStrategy_v31 127.0.0.1 31006 6 &
+sleep 1; cpp-cgdk/versions/MyStrategy_v32 127.0.0.1 31006 6 &
 
 codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p1 tcp-31007 \
   --p2-name PREV-STRAT --p2 tcp-31008 --results-file res4.txt --no-countdown \
   --noshow --log-file game4.log &
 sleep 1; cpp-cgdk/versions/MyStrategy_v30_nodebug 127.0.0.1 31007 7 &
-sleep 1; cpp-cgdk/versions/MyStrategy_v31 127.0.0.1 31008 8
+sleep 1; cpp-cgdk/versions/MyStrategy_v32 127.0.0.1 31008 8
 
 wait
 echo DONE!
