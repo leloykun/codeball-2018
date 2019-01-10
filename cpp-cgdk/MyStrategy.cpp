@@ -67,8 +67,8 @@ void MyStrategy::init_strategy(
 void MyStrategy::init_tick(const model::Game &game) {
   assert(this->initialized);
 
-  std::cout<<"----------------------\n";
-  std::cout<<"current tick: "<<this->current_tick<<"\n";
+  // std::cout<<"----------------------\n";
+  // std::cout<<"current tick: "<<this->current_tick<<"\n";
   this->current_tick = game.current_tick;
   if (this->current_tick % 100 == 0)
     std::cout << this->current_tick << "\n";
@@ -121,7 +121,7 @@ void MyStrategy::calc_action(model::Action &action, const int &num_rays) {
     if (target_exists and
         this->is_closer_than_enemies(target_position) and
         target_position.z <= this->DEFENSE_BORDER) {
-      std::cout<<this->me_id<<" CLEARING BALL!\n";
+      // std::cout<<this->me_id<<" CLEARING BALL!\n";
       this->set_action(
         action,
         CLEARING_BALL,
@@ -163,7 +163,7 @@ void MyStrategy::calc_action(model::Action &action, const int &num_rays) {
           target_position.z -= 2*this->RULES.BALL_RADIUS;
         }
         target_velocity = (target_position - this->me->position.drop()) * this->RULES.ROBOT_MAX_GROUND_SPEED;
-        std::cout<<"target: "<<target_position.str()<<"\n";
+        // std::cout<<"target: "<<target_position.str()<<"\n";
         this->set_action(
           action,
           PREPARING_TO_ATTACK,
@@ -227,9 +227,11 @@ bool MyStrategy::is_closer_than_enemies(const Vec2D &pos) {
       this->me->velocity.drop(),
       pos
     );
+  /*
   std::cout<<"dist:\n";
   std::cout<<"pos: "<<pos.str()<<"\n";
   std::cout<<"my time needed: "<<my_time_needed<<"\n";
+  */
 
   for (int id : this->enemy_ids) {
     double en_time_needed =
@@ -239,7 +241,7 @@ bool MyStrategy::is_closer_than_enemies(const Vec2D &pos) {
         pos
       );
 
-    std::cout<<id<<" time needed: "<<en_time_needed<<"\n";
+    // std::cout<<id<<" time needed: "<<en_time_needed<<"\n";
     if (en_time_needed < my_time_needed)
       return false;
   }
