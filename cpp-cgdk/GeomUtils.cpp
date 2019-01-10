@@ -91,8 +91,15 @@ namespace geom {
     return {false, Vec2D()};
   }
 
-  Vec2D offset_to(const Vec2D &origin, const Vec2D &to, const double &offset) {
-    return origin + (to - origin).normalize() * offset;
+  Vec2D offset_to(
+      const Vec2D &origin,
+      const Vec2D &to,
+      const double &offset,
+      const bool &reverse) {
+    Vec2D delta = (to - origin);
+    if (reverse)
+      delta *= -1;
+    return origin + delta.normalize() * offset;
   }
 
   double calc_jump_height(const double &jump_speed, const double &gravity) {

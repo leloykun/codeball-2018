@@ -76,7 +76,7 @@ public:
   void init_tick(const model::Game &game);
   void init_query(const int &me_id, const model::Game &game);
   void run_simulation(const model::Game &game);
-  void calc_action(model::Action &action, const int &num_rays);
+  ActionSeq calc_action(model::Action &action, const int &num_rays);
   void set_action(
       model::Action &action,
       const ActionSeq &action_seq,
@@ -89,8 +89,14 @@ public:
   bool is_closer_than_enemies(const Vec2D &pos);
   bool can_enemy_interrupt_before_us(const double &time_diff);
   bool an_ally_is_attacking();
+  bool duplicate_action(const ActionSeq &action_seq);
+  bool duplicate_target(
+      const Vec2D &target_position,
+      const double &acceptable_dist);
   Target calc_attack(const int &num_rays, const double &min_speed);
   Target calc_defend();
+  Target calc_prepare(const double &pos_delta);
+  Target calc_block(const double &pos_delta);
   std::tuple<Vec2D&, std::vector<Vec2D>& > calc_targets_from(
       const PosVelTime &robot_pvt,
       const PosVelTime &ball_pvt,

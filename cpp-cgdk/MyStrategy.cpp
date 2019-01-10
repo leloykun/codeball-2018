@@ -25,7 +25,52 @@ void MyStrategy::act(
 
   this->run_simulation(game);
 
-  this->calc_action(action, NUM_RAYS);
+  switch (ActionSeq action_seq = this->calc_action(action, NUM_RAYS); action_seq) {
+    case ATTACKING:
+    case CLEARING_BALL:
+      this->set_action(
+        action,
+        action_seq,
+        Vec3D(this->t_attack.position, this->RULES.ROBOT_RADIUS),
+        Vec3D(this->t_attack.needed_velocity, 0.0),
+        this->calc_jump_speed(),
+        false
+      );
+      break;
+    case GOALKEEPING:
+      this->set_action(
+        action,
+        GOALKEEPING,
+        Vec3D(this->t_defend.position, this->RULES.ROBOT_RADIUS),
+        Vec3D(this->t_defend.needed_velocity, 0.0),
+        this->calc_jump_speed(),
+        false
+      );
+      break;
+    case PREPARING_TO_ATTACK:
+      this->set_action(
+        action,
+        PREPARING_TO_ATTACK,
+        Vec3D(this->t_prepare.position, this->RULES.ROBOT_RADIUS),
+        Vec3D(this->t_prepare.needed_velocity, 0.0),
+        this->calc_jump_speed(),
+        false
+      );
+      break;
+    case BLOCKING:
+      this->set_action(
+        action,
+        BLOCKING,
+        Vec3D(this->t_block.position, this->RULES.ROBOT_RADIUS),
+        Vec3D(this->t_block.needed_velocity, 0.0),
+        this->calc_jump_speed(),
+        false
+      );
+      break;
+    default:
+      std::cout<<"WARNING: DOING NOTHING \n";
+      break;
+  }
 }
 
 
@@ -111,70 +156,35 @@ void MyStrategy::run_simulation(const model::Game &game) {
       DONT_JUMP);
 }
 
-void MyStrategy::calc_action(model::Action &action, const int &num_rays) {
+ActionSeq MyStrategy::calc_action(model::Action &action, const int &num_rays) {
   this->t_attack = this->calc_attack(num_rays, 0.75*this->RULES.ROBOT_MAX_GROUND_SPEED);
   this->t_defend = this->calc_defend();
+  this->t_prepare = this->calc_prepare(2 * this->RULES.BALL_RADIUS);
+  this->t_block = this->calc_block(4 * this->RULES.BALL_RADIUS);
 
-  auto [target_exists, target_position, target_velocity] = this->t_attack;
+  ActionSeq action_seq = ATTACKING;
 
-  if (this->is_closest_to_our_goal() and int(robots.size()) > 2) {
-    if (target_exists and
-        this->is_closer_than_enemies(target_position) and
-        target_position.z <= this->DEFENSE_BORDER) {
-      // std::cout<<this->me_id<<" CLEARING BALL!\n";
-      this->set_action(
-        action,
-        CLEARING_BALL,
-        Vec3D(target_position, this->RULES.ROBOT_RADIUS),
-        Vec3D(target_velocity, 0.0),
-        this->calc_jump_speed(),
-        false
-      );
-    } else {
-      this->set_action(
-        action,
-        GOALKEEPING,
-        Vec3D(this->t_defend.position, this->RULES.ROBOT_RADIUS),
-        Vec3D(this->t_defend.needed_velocity, 0.0),
-        this->calc_jump_speed(),
-        false
-      );
-    }
-  } else {
-    // if (this->can_enemy_interrupt_before_us(0.3) or this->an_ally_is_attacking()) {
-    if (this->an_ally_is_attacking()) {
+  if (this->is_closest_to_our_goal() and int(robots.size()) > 2)
+    action_seq = GOALKEEPING;
 
-    } else {
+  if (action_seq == GOALKEEPING and
+      this->t_attack.exists and
+      this->t_attack.position.z <= this->DEFENSE_BORDER and
+      this->is_closer_than_enemies(this->t_attack.position))
+    action_seq = CLEARING_BALL;
 
-      if (target_exists) {
-        this->set_action(
-          action,
-          ATTACKING,
-          Vec3D(target_position, this->RULES.ROBOT_RADIUS),
-          Vec3D(target_velocity, 0.0),
-          this->calc_jump_speed(),
-          false
-        );
-      } else {
-        if (target_exists)
-          target_position = geom::offset_to(target_position, this->me->position.drop(), 2*this->RULES.BALL_RADIUS);
-        else {
-          target_position = this->ball.bounce_positions[0].drop();
-          target_position.z -= 2*this->RULES.BALL_RADIUS;
-        }
-        target_velocity = (target_position - this->me->position.drop()) * this->RULES.ROBOT_MAX_GROUND_SPEED;
-        // std::cout<<"target: "<<target_position.str()<<"\n";
-        this->set_action(
-          action,
-          PREPARING_TO_ATTACK,
-          Vec3D(target_position, this->RULES.ROBOT_RADIUS),
-          Vec3D(target_velocity, 0.0),
-          this->calc_jump_speed(),
-          false
-        );
-      }
-    }
-  }
+  if (this->t_attack.exists and
+      (action_seq == ATTACKING or action_seq == CLEARING_BALL) and
+      not duplicate_action(action_seq) and
+      not duplicate_target(this->t_attack.position, this->RULES.BALL_RADIUS))
+    return action_seq;
+
+  if (not duplicate_target(this->t_defend.position, this->RULES.BALL_RADIUS))
+    return GOALKEEPING;
+
+  if (is_closer_than_enemies(this->t_prepare.position))
+    return PREPARING_TO_ATTACK;
+  return BLOCKING;
 }
 
 void MyStrategy::set_action(
@@ -184,7 +194,7 @@ void MyStrategy::set_action(
     const Vec3D &target_velocity,
     const double &jump_speed,
     const bool &use_nitro) {
-  // this->me->action_seq = action_seq;
+  this->me->action_seq = action_seq;
   this->me->target_position = target_position;
   this->me->target_velocity = target_velocity;
   this->me->jump_speed = jump_speed;
@@ -295,6 +305,40 @@ bool MyStrategy::an_ally_is_attacking() {
   return false;
 }
 
+bool MyStrategy::duplicate_action(const ActionSeq &action_seq) {
+  for (int id : this->ally_ids) {
+    if (id == this->me_id)
+      continue;
+
+    if (this->robots[id].action_seq == action_seq)
+      return true;
+
+    /*
+    if (this->robots[id].action_seq == ATTACKING and action_seq == CLEARING_BALL)
+      return true;
+
+    if (this->robots[id].action_seq == CLEARING_BALL and action_seq == ATTACKING)
+      return true;
+    */
+  }
+  return false;
+}
+
+bool MyStrategy::duplicate_target(const Vec2D &target_position, const double &acceptable_dist) {
+  double delta_pos = (this->me->position.drop() - target_position).len();
+
+  for (int id : this->ally_ids) {
+    if (id == this->me_id)
+      continue;
+
+    double other_delta_pos = (this->robots[id].target_position.drop() - this->robots[id].position.drop()).len();
+    double delta_targets = (this->robots[id].target_position.drop() - target_position).len();
+    if (delta_targets < acceptable_dist and other_delta_pos < delta_pos)
+      return true;
+  }
+  return false;
+}
+
 Target MyStrategy::calc_attack(const int &num_rays, const double &min_speed) {
   Vec2D target_position;
   Vec2D target_velocity;
@@ -367,6 +411,57 @@ Target MyStrategy::calc_defend() {
       return {true, target_position, target_velocity};
     }
   }
+  return {true, target_position, target_velocity};
+}
+
+Target MyStrategy::calc_prepare(const double &pos_delta) {
+  Vec2D target_position;
+  Vec2D target_velocity;
+  if (this->t_attack.exists)
+    target_position = geom::offset_to(this->t_attack.position,
+                                      this->me->position.drop(),
+                                      pos_delta);
+  else {
+    target_position = this->ball.bounce_positions[0].drop();
+    target_position.z -= pos_delta;
+  }
+  target_velocity = (target_position - this->me->position.drop()) *
+                    this->RULES.ROBOT_MAX_GROUND_SPEED;
+  return {true, target_position, target_velocity};
+}
+
+Target MyStrategy::calc_block(const double &pos_delta) {
+  int attacker_id = -1;
+  double attacker_t_needed = 1e9;
+
+  // should I use this->ball.bounce_positions[0].drop() ??
+
+  for (int id : this->enemy_ids) {
+    if (this->robots[id].position.z < this->ball.position.z)
+      continue;
+    double t_needed = geom::time_to_go_to(
+      this->robots[id].position.drop(),
+      this->robots[id].velocity.drop(),
+      this->ball.position.drop()
+    );
+
+    if (t_needed < attacker_t_needed) {
+      attacker_id = id;
+      attacker_t_needed = t_needed;
+    }
+  }
+
+  if (attacker_id == -1)
+    return {false, Vec2D(), Vec2D()};
+
+  Vec2D target_position;
+  Vec2D target_velocity;
+  target_position = geom::offset_to(this->ball.position.drop(),
+                                    this->robots[attacker_id].position.drop(),
+                                    pos_delta,
+                                    true);
+  target_velocity = (target_position - this->me->position.drop()) *
+                    this->RULES.ROBOT_MAX_GROUND_SPEED;
   return {true, target_position, target_velocity};
 }
 
@@ -468,11 +563,12 @@ double MyStrategy::calc_jump_speed() {
   if (not exists)
     return 0.0;
 
-  if (this->me->velocity.len() > this->RULES.ROBOT_MAX_GROUND_SPEED-1)
+  if (this->me->action_seq == CLEARING_BALL and
+      this->me->velocity.len() > this->RULES.ROBOT_MAX_GROUND_SPEED-1)
     return this->RULES.ROBOT_MAX_JUMP_SPEED;
 
   if (this->me->position.z < robot_pos.z and
-      (ball_pos - robot_pos).len() <= 5*this->ACCEPTABLE_JUMP_DISTANCE)
+      (ball_pos - robot_pos).len() <= this->ACCEPTABLE_JUMP_DISTANCE)
     return this->RULES.ROBOT_MAX_JUMP_SPEED;
 
   return 0.0;

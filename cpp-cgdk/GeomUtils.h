@@ -26,7 +26,11 @@ namespace geom {
       const Vec2D &p1,
       const Vec2D &p2);
 
-  Vec2D offset_to(const Vec2D &origin, const Vec2D &to, const double &offset);
+  Vec2D offset_to(
+      const Vec2D &origin,
+      const Vec2D &to,
+      const double &offset,
+      const bool &reverse = false);
 
   double calc_jump_height(const double &jump_speed, const double &gravity);
 
