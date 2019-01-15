@@ -80,7 +80,16 @@ void MyStrategy::act(
       break;
   };
 
-  if (me.touch) {
+  if (not me.touch and me.velocity_y < 0) {
+    set_action(
+      action,
+      me.id,
+      Vec3D(my_position_2d, 0.0),
+      Vec3D(0.0, 0.0, -rules.ROBOT_MAX_GROUND_SPEED),
+      0.0,
+      true
+    );
+  } else {
     set_action(
       action,
       me.id,
@@ -92,15 +101,6 @@ void MyStrategy::act(
         Vec3D(game.ball.velocity_x, game.ball.velocity_z, game.ball.velocity_z),
         me.id),
       false
-    );
-  } else {
-    set_action(
-      action,
-      me.id,
-      Vec3D(my_position_2d, 0.0),
-      Vec3D(0.0, 0.0, -rules.ROBOT_MAX_GROUND_SPEED),
-      0.0,
-      true
     );
   }
   /*set_action(
