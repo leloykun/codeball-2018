@@ -7,7 +7,6 @@
 
 #include "PointVectors.h"
 #include <string>
-#include <cmath>
 
 struct Color {
   double r {0.0};
@@ -50,12 +49,11 @@ public:
       const double &alpha);
 
   void draw_border(const double &border_z);
-  void draw_path(
+  void draw_ball_path(
       const Path &path,
       const double &radius,
       const Color &color,
       const double &alpha,
-      const bool &has_z_limit = true,
       const double &z_limit = 42);
 };
 
