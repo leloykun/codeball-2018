@@ -1,3 +1,6 @@
+make -C build || exit 1
+echo DONE MAKING!
+
 VERSION=$1
 zip "versions/MyStrategy_v$VERSION.zip" MyStrategy.h MyStrategy.cpp \
   PointVectors.h RenderUtil.h RenderUtil.cpp Simulation.h SimPredict.cpp \
