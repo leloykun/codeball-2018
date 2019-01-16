@@ -33,13 +33,12 @@ for ((batch = 0; batch < $BATCHES; batch++)) do
 echo "RESULTS:"
 let P1_wins=0
 let P2_wins=0
-for ((game = 0; game < $((BATCHES*NUM_CORES)); game++))
-  do
+for ((game = 0; game < $((BATCHES*NUM_CORES)); game++)) do
     readarray -t RESFILE < codeball2018-linux/result_$game.txt
-    if ((${RESFILE[0]:0:1} == "1"))
-    then
+    echo ${RESFILE[@]}
+    if ((${RESFILE[0]:0:1} == "1" && ${RESFILE[1]:0:1} == "2")) then
       let P1_wins=$P1_wins+1
-    else
+    elif ((${RESFILE[0]:0:1} == "2" && ${RESFILE[1]:0:1} == "1")) then
       let P2_wins=$P2_wins+1
     fi
   done
