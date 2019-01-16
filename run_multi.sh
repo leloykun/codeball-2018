@@ -1,6 +1,7 @@
 NUM_GAMES=${1:-4}
-VERSION_P1=${2:-33}
-VERSION_P2=${3:-34}
+DURATION=${2:-18000}
+VERSION_P1=${3:-33}
+VERSION_P2=${4:-34}
 
 for ((i = 1; i <= $NUM_GAMES; i++))
   do
@@ -8,6 +9,7 @@ for ((i = 1; i <= $NUM_GAMES; i++))
     let b=2*$i
     echo $i $a $b
     codeball2018-linux/codeball2018 \
+      --duration $DURATION \
       --p1-name V$VERSION_P1 --p1 tcp-3100$a \
       --p2-name V$VERSION_P2 --p2 tcp-3100$b \
       --results-file res$i.txt --no-countdown \
