@@ -17,6 +17,10 @@ for ((i = 1; i <= $NUM_GAMES; i++))
     sleep 1; cpp-cgdk/versions/MyStrategy_v$VERSION_P1 127.0.0.1 3100$a $a &
     sleep 1; cpp-cgdk/versions/MyStrategy_v$VERSION_P2 127.0.0.1 3100$b $b &
   done
+
+wait
+echo "DONE!"
+
 : '
 codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p1 tcp-31001 \
   --p2-name PREV-STRAT --p2 tcp-31002 --results-file res1.txt --no-countdown \
