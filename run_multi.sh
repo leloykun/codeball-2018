@@ -1,3 +1,6 @@
+rm -- codeball2018-linux/result*.txt
+rm -- codeball2018-linux/game*.log
+
 NUM_CORES=4
 
 BATCHES=${1:-1}
@@ -27,7 +30,7 @@ for ((batch = 0; batch < $BATCHES; batch++)) do
   done
 
 echo "RESULTS:"
-for ((game = 1; game <= $((BATCHES*NUM_CORES)); game++))
+for ((game = 0; game < $((BATCHES*NUM_CORES)); game++))
   do
     cat codeball2018-linux/result_$game.txt
   done
