@@ -538,7 +538,7 @@ TargetJump MyStrategy::calc_jump_intercept(
     assert(std::fabs(robot_path[i].t - ball_path[i].t) < EPS);
     if ((ball_path[i] - robot_path[i]).len() <= rules.BALL_RADIUS + rules.ROBOT_RADIUS) {
       if (ball_path[i].z >= my_position.z and
-          ball_path[i].z >= robot_path[i].z and
+          ball_path[i].z >= robot_path[i].z + 0.5 and
           ball_path[i].y >= robot_path[i].y and
           robot_path[i].y >= prev_max_height) {
         return {true, ball_path[i], robot_path[i]};
