@@ -16,7 +16,8 @@ for ((batch = 0; batch < $BATCHES; batch++)) do
       let port_1=3100+$a
       let port_2=3100+$b
       # echo $batch $core $game $a $b $port_1 $port_2
-      # printf "1:1:OK\n2:0:OK\n7186238716238\n" > codeball2018-linux/result_$game.txt
+      printf "1:1:OK\n2:0:OK\n7186238716238\n" > codeball2018-linux/result_$game.txt
+      # : '
       codeball2018-linux/codeball2018 \
         --duration $DURATION \
         --p1-name V$VERSION_P1 --p1 tcp-$port_1 \
@@ -25,6 +26,7 @@ for ((batch = 0; batch < $BATCHES; batch++)) do
         --noshow --log-file game_$game.log --nitro true &
       sleep 0.5; cpp-cgdk/versions/MyStrategy_v$VERSION_P1 127.0.0.1 $port_1 $a &
       sleep 0.5; cpp-cgdk/versions/MyStrategy_v$VERSION_P2 127.0.0.1 $port_2 $b &
+      # '
     done
     wait
     echo "DONE BATCH $batch"
@@ -36,9 +38,11 @@ let P2_wins=0
 for ((game = 0; game < $((BATCHES*NUM_CORES)); game++)) do
     readarray -t RESFILE < codeball2018-linux/result_$game.txt
     echo ${RESFILE[@]}
-    if ((${RESFILE[0]:0:1} == "1" && ${RESFILE[1]:0:1} == "2")) then
+    if ((${RESFILE[0]:0:1} == "1" && ${RESFILE[1]:0:1} == "2"))
+    then
       let P1_wins=$P1_wins+1
-    elif ((${RESFILE[0]:0:1} == "2" && ${RESFILE[1]:0:1} == "1")) then
+    elif ((${RESFILE[0]:0:1} == "2" && ${RESFILE[1]:0:1} == "1"))
+    then
       let P2_wins=$P2_wins+1
     fi
   done
