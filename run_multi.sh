@@ -1,8 +1,37 @@
-NUM_GAMES=${1:-4}
+NUM_CORES=4
+
+BATCHES=${1:-1}
 DURATION=${2:-18000}
 VERSION_P1=${3:-33}
 VERSION_P2=${4:-34}
 
+for ((batch = 0; batch < $BATCHES; batch++)) do
+  for ((core = 0; core < $NUM_CORES; core++)) do
+      let game=$NUM_CORES*$batch+core
+      let a=2*$game
+      let b=2*$game+1
+      let port_1=3100+$a
+      let port_2=3100+$b
+      # echo $batch $core $game $a $b $port_1 $port_2
+      codeball2018-linux/codeball2018 \
+        --duration $DURATION \
+        --p1-name V$VERSION_P1 --p1 tcp-$port_1 \
+        --p2-name V$VERSION_P2 --p2 tcp-$port_2 \
+        --results-file result_$game.txt --no-countdown \
+        --noshow --log-file game_$game.log --nitro true &
+      sleep 1; cpp-cgdk/versions/MyStrategy_v$VERSION_P1 127.0.0.1 $port_1 $a &
+      sleep 1; cpp-cgdk/versions/MyStrategy_v$VERSION_P2 127.0.0.1 $port_2 $b &
+    done
+    wait
+    echo "DONE BATCH $batch"
+  done
+
+echo "RESULTS:"
+for ((game = 1; game <= $((BATCHES*NUM_CORES)); game++))
+  do
+    cat codeball2018-linux/result_$game.txt
+  done
+: '
 for ((i = 1; i <= $NUM_GAMES; i++))
   do
     let a=2*$i-1
@@ -26,7 +55,7 @@ for ((i = 1; i <= $NUM_GAMES; i++))
   do
     cat codeball2018-linux/result_$i.txt
   done
-
+'
 : '
 codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p1 tcp-31001 \
   --p2-name PREV-STRAT --p2 tcp-31002 --results-file res1.txt --no-countdown \
