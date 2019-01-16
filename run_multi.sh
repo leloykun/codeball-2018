@@ -1,3 +1,9 @@
+for i in {1..7..2}
+  do
+    j=i+1
+    echo i j
+  done
+
 codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p1 tcp-31001 \
   --p2-name PREV-STRAT --p2 tcp-31002 --results-file res1.txt --no-countdown \
   --noshow --log-file game1.log --nitro true &
