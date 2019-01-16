@@ -533,16 +533,19 @@ TargetJump MyStrategy::calc_jump_intercept(
     const Path &robot_path,
     const Path &ball_path,
     const Vec3D &my_position) {
+  double prev_max_height = -1e9;
   for (int i = 0; i < std::min(int(robot_path.size()), int(ball_path.size())); ++i) {
     assert(std::fabs(robot_path[i].t - ball_path[i].t) < EPS);
     if ((ball_path[i] - robot_path[i]).len() <= rules.BALL_RADIUS + rules.ROBOT_RADIUS) {
       if (ball_path[i].z >= my_position.z and
           ball_path[i].z >= robot_path[i].z + 0.5 and
-          ball_path[i].y >= robot_path[i].y) {
+          ball_path[i].y >= robot_path[i].y and
+          robot_path[i].y >= prev_max_height) {
         return {true, ball_path[i], robot_path[i]};
       } else
         return {false, Vec3D(), Vec3D()};
     }
+    prev_max_height = std::max(prev_max_height, robot_path[i].y);
   }
   return {false, Vec3D(), Vec3D()};
 }
