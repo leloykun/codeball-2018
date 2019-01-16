@@ -22,8 +22,8 @@ for ((batch = 0; batch < $BATCHES; batch++)) do
         --p2-name V$VERSION_P2 --p2 tcp-$port_2 \
         --results-file result_$game.txt --no-countdown \
         --noshow --log-file game_$game.log --nitro true &
-      sleep 1; cpp-cgdk/versions/MyStrategy_v$VERSION_P1 127.0.0.1 $port_1 $a &
-      sleep 1; cpp-cgdk/versions/MyStrategy_v$VERSION_P2 127.0.0.1 $port_2 $b &
+      sleep 0.5; cpp-cgdk/versions/MyStrategy_v$VERSION_P1 127.0.0.1 $port_1 $a &
+      sleep 0.5; cpp-cgdk/versions/MyStrategy_v$VERSION_P2 127.0.0.1 $port_2 $b &
     done
     wait
     echo "DONE BATCH $batch"
