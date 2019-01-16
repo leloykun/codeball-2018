@@ -12,7 +12,7 @@ for ((i = 1; i <= $NUM_GAMES; i++))
       --duration $DURATION \
       --p1-name V$VERSION_P1 --p1 tcp-3100$a \
       --p2-name V$VERSION_P2 --p2 tcp-3100$b \
-      --results-file res$i.txt --no-countdown \
+      --results-file result_$i.txt --no-countdown \
       --noshow --log-file game$i.log --nitro true &
     sleep 1; cpp-cgdk/versions/MyStrategy_v$VERSION_P1 127.0.0.1 3100$a $a &
     sleep 1; cpp-cgdk/versions/MyStrategy_v$VERSION_P2 127.0.0.1 3100$b $b &
@@ -20,6 +20,12 @@ for ((i = 1; i <= $NUM_GAMES; i++))
 
 wait
 echo "DONE!"
+
+echo "RESULTS:"
+for ((i = 1; i <= $NUM_GAMES; i++))
+  do
+    cat codeball2018-linux/result_$i.txt
+  done
 
 : '
 codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p1 tcp-31001 \
