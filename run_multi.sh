@@ -1,7 +1,19 @@
-for i in {1..7..2}
+NUM_GAMES=${1:-4}
+VERSION_P1=${2:-33}
+VERSION_P2=${3:-34}
+
+for ((i = 1; i <= $NUM_GAMES; i++))
   do
-    j=$i+1
-    echo $i $j
+    let a=2*$i-1
+    let b=2*$i
+    echo $i $a $b
+    codeball2018-linux/codeball2018 \
+      --p1-name V$VERSION_P1 --p1 tcp-3100$a \
+      --p2-name V$VERSION_P2 --p2 tcp-3100$b \
+      --results-file res$i.txt --no-countdown \
+      --noshow --log-file game$i.log --nitro true &
+    sleep 1; cpp-cgdk/versions/MyStrategy_v$VERSION_P1 127.0.0.1 3100$a $a &
+    sleep 1; cpp-cgdk/versions/MyStrategy_v$VERSION_P2 127.0.0.1 3100$b $b &
   done
 : '
 codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p1 tcp-31001 \
