@@ -1,6 +1,6 @@
 for i in {1..7..2}
   do
-    j=i+1
+    j=$i+1
     echo $i $j
   done
 : '
