@@ -101,7 +101,7 @@ void MyStrategy::act(
       Vec3D(target_position, 0.0),
       Vec3D(target_velocity, 0.0),
       jump_speed,
-      0.0  // (std::fabs(30.0 - Vec2D(me.velocity_x, me.velocity_z).len()) > EPS and jump_speed > EPS)
+      false // (std::fabs(30.0 - Vec2D(me.velocity_x, me.velocity_z).len()) > EPS and jump_speed > EPS)
     );
   }
   /*set_action(
@@ -125,7 +125,7 @@ void MyStrategy::init_strategy(
 
   this->rules = rules;
   this->arena = rules.arena;
-  this->DEFENSE_BORDER = -arena.depth/8.0;
+  this->DEFENSE_BORDER = -arena.depth/6.0;
   this->CRITICAL_BORDER = -(arena.depth/2.0 - arena.top_radius);
 
   // get IDs of allies
@@ -337,7 +337,7 @@ Target MyStrategy::get_default_strat(
     target_position = res.position;
   } else {
     target_position = Vec2D(ball_bounce_positions[0].x,
-                            ball_bounce_positions[0].z - rules.BALL_RADIUS);
+                            ball_bounce_positions[0].z - 2*rules.BALL_RADIUS);
     if (target_position.x < - (arena.goal_width/2.0 - arena.bottom_radius))
       target_position.x -= rules.ROBOT_RADIUS;
     else if (target_position.x > arena.goal_width/2.0 - arena.bottom_radius)
