@@ -90,20 +90,17 @@ void MyStrategy::act(
       true
     );
   } else {
-    double jump_speed = calc_jump_speed(
-      my_position_3d,
-      ball_position_3d,
-      Vec3D(game.ball.velocity_x, game.ball.velocity_z, game.ball.velocity_z),
-      me.id);
     set_action(
       action,
       me.id,
       Vec3D(target_position, 0.0),
       Vec3D(target_velocity, 0.0),
-      jump_speed,
-      (std::fabs(rules.ROBOT_MAX_GROUND_SPEED -
-       this->robot_velocities[me.id].len()) > EPS and
-       jump_speed > EPS)
+      calc_jump_speed(
+        my_position_3d,
+        ball_position_3d,
+        Vec3D(game.ball.velocity_x, game.ball.velocity_z, game.ball.velocity_z),
+        me.id),
+      false
     );
   }
   /*set_action(
@@ -114,10 +111,6 @@ void MyStrategy::act(
     rules.ROBOT_MAX_JUMP_SPEED,
     false
   );*/
-  /*
-  std::cout<<"current_tick: "<<game.current_tick<<"\n";
-  std::cout<<me.id<<" "<<me.nitro_amount<<"\n";
-  */
 }
 
 void MyStrategy::init_strategy(
@@ -303,7 +296,7 @@ Target MyStrategy::calc_defend_spot(
     clamp(ball_path[0].x,
           -(arena.goal_width/2.0-2*arena.bottom_radius),
           arena.goal_width/2.0-2*arena.bottom_radius),
-    -arena.depth/2.0);
+    -arena.depth/2.0-rules.ROBOT_RADIUS);
   Vec2D target_velocity = (target_position - my_position) *
                           rules.ROBOT_MAX_GROUND_SPEED;
 
