@@ -112,8 +112,10 @@ void MyStrategy::act(
     rules.ROBOT_MAX_JUMP_SPEED,
     false
   );*/
+  /*
   std::cout<<"current_tick: "<<game.current_tick<<"\n";
   std::cout<<me.id<<" "<<me.nitro_amount<<"\n";
+  */
 }
 
 void MyStrategy::init_strategy(
