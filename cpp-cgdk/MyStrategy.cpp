@@ -337,7 +337,7 @@ Target MyStrategy::get_default_strat(
     target_position = res.position;
   } else {
     target_position = Vec2D(ball_bounce_positions[0].x,
-                            ball_bounce_positions[0].z - rules.ROBOT_RADIUS);
+                            ball_bounce_positions[0].z - rules.BALL_RADIUS);
     if (target_position.x < - (arena.goal_width/2.0 - arena.bottom_radius))
       target_position.x -= rules.ROBOT_RADIUS;
     else if (target_position.x > arena.goal_width/2.0 - arena.bottom_radius)
