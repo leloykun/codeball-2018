@@ -101,7 +101,9 @@ void MyStrategy::act(
       Vec3D(target_position, 0.0),
       Vec3D(target_velocity, 0.0),
       jump_speed,
-      false // (std::fabs(30.0 - Vec2D(me.velocity_x, me.velocity_z).len()) > EPS and jump_speed > EPS)
+      (std::fabs(rules.ROBOT_MAX_GROUND_SPEED -
+       this->robot_velocities[me.id].len()) > EPS and
+       jump_speed > EPS)
     );
   }
   /*set_action(
