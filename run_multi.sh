@@ -5,7 +5,7 @@ NUM_CORES=4
 
 BATCHES=${1:-1}
 DURATION=${2:-18000}
-VERSION_P1=${3:-33}
+VERSION_P1=${3:-33_nodebug}
 VERSION_P2=${4:-34}
 
 for ((batch = 0; batch < $BATCHES; batch++)) do
@@ -16,7 +16,7 @@ for ((batch = 0; batch < $BATCHES; batch++)) do
       let port_1=3100+$a
       let port_2=3100+$b
       # echo $batch $core $game $a $b $port_1 $port_2
-      printf "1:1:OK\n2:0:OK\n7186238716238\n" > codeball2018-linux/result_$game.txt
+      # printf "1:1:OK\n2:0:OK\n7186238716238\n" > codeball2018-linux/result_$game.txt
       # : '
       codeball2018-linux/codeball2018 \
         --duration $DURATION \
