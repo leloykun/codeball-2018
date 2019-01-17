@@ -125,7 +125,7 @@ void MyStrategy::init_strategy(
 
   this->rules = rules;
   this->arena = rules.arena;
-  this->DEFENSE_BORDER = -arena.depth/6.0;
+  this->DEFENSE_BORDER = -arena.depth/8.0;
   this->CRITICAL_BORDER = -(arena.depth/2.0 - arena.top_radius);
 
   // get IDs of allies
