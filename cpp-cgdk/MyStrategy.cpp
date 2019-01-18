@@ -455,7 +455,6 @@ std::tuple<bool, Vec3D, Vec3D> MyStrategy::calc_valid_jump_intercept(
 
 
 std::string MyStrategy::custom_rendering() {
-  /*
   // draw borders
   this->renderer.draw_border(this->DEFENSE_BORDER);
   this->renderer.draw_border(this->CRITICAL_BORDER);
@@ -506,8 +505,8 @@ std::string MyStrategy::custom_rendering() {
   }
 
   return this->renderer.get_json();
-  */
-  return "";
+
+  // return "";
 }
 
 
