@@ -648,6 +648,7 @@ std::string MyStrategy::custom_rendering() {
       0.5);
   }
 
+  return "";
   return this->renderer.get_json();
 }
 
