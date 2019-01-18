@@ -5,7 +5,7 @@ NUM_CORES=4
 
 BATCHES=${1:-1}
 DURATION=${2:-18000}
-VERSION_P1=${3:-33_nodebug}
+VERSION_P1=${3:-35_nodebug}
 VERSION_P2=${4:-36}
 
 for ((batch = 0; batch < $BATCHES; batch++)) do
