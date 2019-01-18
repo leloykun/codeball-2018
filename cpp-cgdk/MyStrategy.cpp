@@ -131,12 +131,6 @@ void MyStrategy::init_query(const int &me_id, const model::Game &game) {
   this->me_id = me_id;
   this->me = &this->robots[me_id];
 
-  /*
-  t_attack.exists = false;
-  t_defend.exists = false;
-  t_prepare.exists = false;
-  t_block.exists = false;
-  */
   t_attack.exists = false;
   t_attack_aggro.exists = false;
   t_cross.exists = false;
@@ -194,7 +188,7 @@ Role MyStrategy::calc_role() {
   if (role == GOALKEEPER and
       this->t_attack_aggro.exists and
       this->t_attack_aggro.position.z <= this->DEFENSE_BORDER and
-      this->is_closer_than_enemies(t_attack_aggro.position)) {
+      this->can_arrive_earlier_than_enemies(t_attack_aggro.position)) {
     role = AGGRESSIVE_DEFENDER;
   }
 
@@ -386,11 +380,32 @@ int MyStrategy::get_id_pos_enemy_attacker(const Vec2D &position) {
   return nearest_id;
 }
 
-bool MyStrategy::is_closer_than_enemies(const Vec2D &position) {
+bool MyStrategy::can_arrive_earlier_than_enemies(const Vec2D &position) {
+  /*
   double dist = (this->me->position.drop() - position).len();
   for (const int &id : this->enemy_ids) {
     double dist_other = (this->robots[id].position.drop() - position).len();
     if (dist_other < dist)
+      return false;
+  }
+  return true;
+  */
+  double my_time_needed =
+    geom::time_to_go_to(
+      this->me->position.drop(),
+      this->me->velocity.drop(),
+      position
+    );
+
+  for (int id : this->enemy_ids) {
+    double en_time_needed =
+      geom::time_to_go_to(
+        this->robots[id].position.drop(),
+        this->robots[id].velocity.drop(),
+        position
+      );
+
+    if (en_time_needed < my_time_needed)
       return false;
   }
   return true;

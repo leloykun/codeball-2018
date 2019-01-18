@@ -109,7 +109,7 @@ public:
       const double &acceptable_delta);
   Vec2D get_first_reachable();
   int get_id_pos_enemy_attacker(const Vec2D &position);
-  bool is_closer_than_enemies(const Vec2D &position);
+  bool can_arrive_earlier_than_enemies(const Vec2D &position);
 
   double calc_jump_speed(const double &acceptable_jump_dist);
   std::tuple<bool, Vec3D, Vec3D> calc_valid_jump_intercept(

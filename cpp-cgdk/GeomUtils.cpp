@@ -117,7 +117,7 @@ namespace geom {
     double speed = init_velocity.dot(dir.normalize());
 
     double t_maxv = (max_speed - speed) / acceleration;
-    double t_reach = (max_speed * max_speed - speed * speed) / (2 * acceleration);
+    double t_reach = (std::sqrt(speed*speed + 2 * acceleration * dist) - speed) / acceleration;
 
     if (t_maxv < t_reach) {
       /*      ----------
