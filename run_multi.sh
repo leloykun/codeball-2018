@@ -20,9 +20,8 @@ for ((batch = 0; batch < $BATCHES; batch++)) do
       # echo $batch $core $game $a $b $port_1 $port_2
       # printf "1:1:OK\n2:0:OK\n7186238716238\n" > codeball2018-linux/result_$game.txt
       # : '
-      # --duration $DURATION
       codeball2018-linux/codeball2018 \
-        --until-first-goal \
+        --duration $DURATION \
         --p1-name V$VERSION_P1 --p1 tcp-$port_1 \
         --p2-name V$VERSION_P2 --p2 tcp-$port_2 \
         --results-file result_$game.txt --no-countdown \

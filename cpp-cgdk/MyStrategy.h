@@ -102,7 +102,7 @@ public:
       const double &min_speed,
       const double &max_speed);
   Target calc_defend_spot();
-  Target calc_block_spot();
+  Target calc_block_spot(const double &offset);
   Target calc_follow_spot(const double &z_offset);
 
   bool is_duplicate_target(

@@ -197,8 +197,8 @@ void MyStrategy::calc_targets() {
     0.5*this->RULES.ROBOT_MAX_GROUND_SPEED,
     1.0*this->RULES.ROBOT_MAX_GROUND_SPEED);
   t_cross = this->calc_defend_spot();
-  t_block = this->calc_block_spot();
-  t_follow = this->calc_follow_spot(2.0*this->RULES.BALL_RADIUS);
+  t_block = this->calc_block_spot(2*this->RULES.BALL_RADIUS);
+  t_follow = this->calc_follow_spot(2*this->RULES.BALL_RADIUS);
 }
 
 Role MyStrategy::calc_role() {
@@ -323,7 +323,7 @@ Target MyStrategy::calc_defend_spot() {
   return {true, target_position, target_velocity};
 }
 
-Target MyStrategy::calc_block_spot() {
+Target MyStrategy::calc_block_spot(const double &offset) {
   Vec2D first_bounce = this->get_first_reachable();
 
   int nearest_id = this->get_id_pos_enemy_attacker(first_bounce);
@@ -333,7 +333,7 @@ Target MyStrategy::calc_block_spot() {
   Vec2D target_position = geom::offset_to(
     first_bounce,
     this->robots[nearest_id].position.drop(),
-    2*this->RULES.BALL_RADIUS,
+    offset,
     true);
   Vec2D target_velocity = (target_position - this->me->position.drop()) *
                           this->RULES.ROBOT_MAX_GROUND_SPEED;
