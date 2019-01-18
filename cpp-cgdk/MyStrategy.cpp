@@ -191,7 +191,7 @@ void MyStrategy::calc_targets() {
     0.5*this->RULES.ROBOT_MAX_GROUND_SPEED,
     1.0*this->RULES.ROBOT_MAX_GROUND_SPEED);
   t_attack_aggro = this->calc_intercept_spot(
-    this->REACHABLE_HEIGHT-0.5*this->RULES.ROBOT_RADIUS,
+    6*this->RULES.ROBOT_RADIUS,
     false,
     1.5*this->RULES.ROBOT_RADIUS,
     0.5*this->RULES.ROBOT_MAX_GROUND_SPEED,
@@ -314,9 +314,9 @@ Target MyStrategy::calc_defend_spot() {
     if (ball_pvt.position.z <= this->CRITICAL_BORDER) {
       target_position.x = ball_pvt.position.x;
       Vec2D delta_pos = target_position - this->me->position.drop();
-      // double need_speed = delta_pos.len() / ball_pvt.time;
-      // target_velocity = delta_pos.normalize() * need_speed;
-      target_velocity = delta_pos.normalize() * this->RULES.ROBOT_MAX_GROUND_SPEED;
+      double need_speed = delta_pos.len() / ball_pvt.time;
+      target_velocity = delta_pos.normalize() * need_speed;
+      // target_velocity = delta_pos.normalize() * this->RULES.ROBOT_MAX_GROUND_SPEED;
       return {true, target_position, target_velocity};
     }
   }
