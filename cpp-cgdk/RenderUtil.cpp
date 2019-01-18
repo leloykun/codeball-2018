@@ -5,7 +5,6 @@
 #ifndef _RENDER_UTIL_CPP_
 #define _RENDER_UTIL_CPP_
 
-#include <cmath>
 #include "RenderUtil.h"
 
 void RenderUtil::clear() {
@@ -86,18 +85,19 @@ void RenderUtil::draw_border(const double &border_z) {
   draw_line(corner_D, corner_A, 5, GREEN, 0.5);
 }
 
-void RenderUtil::draw_ball_path(
+void RenderUtil::draw_path(
     const Path &path,
     const double &radius,
     const Color &color,
     const double &alpha,
+    const bool &has_z_limit,
     const double &z_limit) {
-  for (int i = 0; i < int(path.size()); ++i) {
-    if (std::fabs(path[i].z) >= z_limit) {
-      draw_sphere(path[i], radius + 0.5, color, 1.0);
+  for (const PosVelTime &pvt : path) {
+    if (has_z_limit and std::fabs(pvt.position.z) >= z_limit) {
+      draw_sphere(pvt.position, radius + 0.5, color, 1.0);
       break;
     }
-    draw_sphere(path[i], radius, color, alpha);
+    draw_sphere(pvt.position, radius, color, alpha);
   }
 }
 
