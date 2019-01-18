@@ -118,36 +118,13 @@ public:
       const Path &ball_path,
       const Vec3D &robot_position);
   /*
-  ActionSeq calc_action(model::Action &action, const int &num_rays);
-  void set_action(
-      model::Action &action,
-      const ActionSeq &action_seq,
-      const Vec3D &target_position,
-      const Vec3D &target_velocity,
-      const double &jump_speed,
-      const bool &use_nitro);
-
   bool is_closest_to_our_goal();
   bool is_closer_than_enemies(const Vec2D &pos);
   bool can_enemy_interrupt_before_us(const double &time_diff);
-  bool an_ally_is_attacking();
-  bool duplicate_action(const ActionSeq &action_seq);
-  bool duplicate_target(
-      const Vec2D &target_position,
-      const double &acceptable_dist);
-  Target calc_attack(const int &num_rays, const double &min_speed);
-  Target calc_defend();
-  Target calc_prepare(const double &pos_delta);
-  Target calc_block(const double &pos_delta);
   std::tuple<Vec2D&, std::vector<Vec2D>& > calc_targets_from(
       const PosVelTime &robot_pvt,
       const PosVelTime &ball_pvt,
       const int &num_rays);
-  double calc_jump_speed();
-  std::tuple<bool, Vec3D, Vec3D> calc_valid_jump_intercept(
-      const Path &robot_path,
-      const Path &ball_path,
-      const Vec3D &robot_position);
   */
   std::string custom_rendering() override;
 };
