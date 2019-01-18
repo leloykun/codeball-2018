@@ -11,7 +11,6 @@
 #include "RenderUtil.h"
 #include "GeomUtils.h"
 #include "Entity.h"
-#include <algorithm>
 #include <iostream>
 #include <string>
 #include <vector>

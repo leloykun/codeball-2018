@@ -448,15 +448,12 @@ std::tuple<bool, Vec3D, Vec3D> MyStrategy::calc_valid_jump_intercept(
           ball_path[i].position.y >= robot_path[i].position.y and
           robot_path[i].position.y >= prev_max_height) {
         return std::forward_as_tuple(true, ball_path[i].position, robot_path[i].position);
-        // return {true, ball_path[i].position, robot_path[i].position};
       } else
         return std::forward_as_tuple(false, Vec3D(), Vec3D());
-        // return {false, Vec3D(), Vec3D()};
     }
     prev_max_height = std::max(prev_max_height, robot_path[i].position.y);
   }
   return std::forward_as_tuple(false, Vec3D(), Vec3D());
-  // return {false, Vec3D(), Vec3D()};
 }
 
 /*
