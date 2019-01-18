@@ -191,7 +191,7 @@ void MyStrategy::calc_targets() {
     0.5*this->RULES.ROBOT_MAX_GROUND_SPEED,
     1.0*this->RULES.ROBOT_MAX_GROUND_SPEED);
   t_attack_aggro = this->calc_intercept_spot(
-    6*this->RULES.ROBOT_RADIUS,
+    this->REACHABLE_HEIGHT-0.5*this->RULES.ROBOT_RADIUS,
     false,
     1.5*this->RULES.ROBOT_RADIUS,
     0.5*this->RULES.ROBOT_MAX_GROUND_SPEED,
