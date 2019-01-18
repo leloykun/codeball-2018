@@ -85,19 +85,38 @@ public:
   void init_tick(const model::Game &game);
   void init_query(const int &me_id, const model::Game &game);
   void run_simulation(const model::Game &game);
-
   void calc_targets();
+  Role calc_role();
+  void set_action(
+      model::Action &action,
+      const int &id,
+      const Vec3D &target_position,
+      const Vec3D &target_velocity,
+      const double &jump_speed,
+      const bool &use_nitro);
+
   Target calc_intercept_spot(
       const double &reachable_height,
       const bool &to_shift_x,
-      const double &z_delta,
+      const double &z_offset,
       const double &min_speed,
       const double &max_speed);
-  Target calc_defend_spot(const double &reachable_height);
+  Target calc_defend_spot();
   Target calc_block_spot();
-  Target calc_follow_spot();
+  Target calc_follow_spot(const double &z_offset);
 
-  int get_id_nearest_to(const Vec2D &position);
+  bool is_duplicate_target(
+      const Vec2D &position,
+      const double &acceptable_delta);
+  Vec2D get_first_reachable();
+  int get_id_pos_enemy_attacker(const Vec2D &position);
+  bool is_closer_than_enemies(const Vec2D &position);
+
+  double calc_jump_speed(const double &acceptable_jump_dist);
+  std::tuple<bool, Vec3D, Vec3D> calc_valid_jump_intercept(
+      const Path &robot_path,
+      const Path &ball_path,
+      const Vec3D &robot_position);
   /*
   ActionSeq calc_action(model::Action &action, const int &num_rays);
   void set_action(

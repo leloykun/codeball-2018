@@ -12,6 +12,7 @@
 
 const double EPS = 1e-9;
 const double BIG_EPS = 1e-5;
+const double INF = 1e9;
 
 struct Vec2D {
   double x {0.0};

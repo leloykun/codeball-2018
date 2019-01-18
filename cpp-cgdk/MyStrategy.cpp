@@ -25,6 +25,69 @@ void MyStrategy::act(
 
   this->run_simulation(game);
 
+  this->calc_targets();
+
+  this->me->role = this->calc_role();
+
+  // ATTACKER,
+  // AGGRESSIVE_DEFENDER,
+  // GOALKEEPER,
+  // BLOCKER,
+  // FOLLOWER
+  Vec2D target_position;
+  Vec2D target_velocity;
+
+  Vec3D hover = this->me->position;
+  hover.y += 1.5*this->RULES.ROBOT_RADIUS;
+
+  switch (this->me->role) {
+    case ATTACKER:
+      target_position = this->t_attack.position;
+      target_velocity = this->t_attack.needed_velocity;
+      renderer.draw_sphere(hover, 0.5, RED, 1.0);
+      renderer.draw_sphere(Vec3D(target_position, 0.0), 1.0, RED, 0.5);
+      break;
+    case AGGRESSIVE_DEFENDER:
+      target_position = this->t_attack_aggro.position;
+      target_velocity = this->t_attack_aggro.needed_velocity;
+      renderer.draw_sphere(hover, 0.5, LIGHT_RED, 1.0);
+      renderer.draw_sphere(Vec3D(target_position, 0.0), 1.0, LIGHT_RED, 0.5);
+      break;
+    case GOALKEEPER:
+      target_position = this->t_cross.position;
+      target_velocity = this->t_cross.needed_velocity;
+      renderer.draw_sphere(hover, 0.5, BLUE, 1.0);
+      renderer.draw_sphere(Vec3D(target_position, 0.0), 1.0, BLUE, 0.5);
+      break;
+    case BLOCKER:
+      target_position = this->t_block.position;
+      target_velocity = this->t_block.needed_velocity;
+      renderer.draw_sphere(hover, 0.5, LIGHT_BLUE, 1.0);
+      renderer.draw_sphere(Vec3D(target_position, 0.0), 1.0, LIGHT_BLUE, 0.5);
+      break;
+    case FOLLOWER:
+      target_position = this->t_follow.position;
+      target_velocity = this->t_follow.needed_velocity;
+      renderer.draw_sphere(hover, 0.5, WHITE, 1.0);
+      renderer.draw_sphere(Vec3D(target_position, 0.0), 1.0, WHITE, 0.5);
+      break;
+    default:
+      assert(false);
+      break;
+  }
+
+  std::cout<<me.id<<":\n"
+           <<this->me->position.drop().str()<<"||"<<target_position.str()<<"\n"
+           <<this->me->velocity.drop().len()<<"||"<<target_velocity.len()<<"\n";
+
+  this->set_action(
+    action,
+    this->me_id,
+    Vec3D(target_position, 0.0),
+    Vec3D(target_velocity, 0.0),
+    this->calc_jump_speed(this->REACHABLE_HEIGHT),
+    false
+  );
   /*
   switch (ActionSeq action_seq = this->calc_action(action, NUM_RAYS); action_seq) {
     case ATTACKING:
@@ -88,7 +151,7 @@ void MyStrategy::init_strategy(
   this->ZONE_BORDER = 0.0;
   this->DEFENSE_BORDER = -this->ARENA.depth/6.0;
   // this->CRITICAL_BORDER = -(this->ARENA.depth/2.0 - this->ARENA.top_radius);
-  this->CRITICAL_BORDER = this->ARENA.depth/2.0;
+  this->CRITICAL_BORDER = -this->ARENA.depth/2.0;
   this->GOAL_EDGE = this->ARENA.goal_width/2.0 - this->ARENA.goal_top_radius;
   this->REACHABLE_HEIGHT = this->RULES.ROBOT_MAX_RADIUS +
                           geom::calc_jump_height(
@@ -169,7 +232,6 @@ void MyStrategy::run_simulation(const model::Game &game) {
       DONT_JUMP);
 }
 
-
 void MyStrategy::calc_targets() {
   t_attack = this->calc_intercept_spot(
     4*this->RULES.ROBOT_RADIUS,
@@ -183,20 +245,75 @@ void MyStrategy::calc_targets() {
     1.5*this->RULES.ROBOT_RADIUS,
     0.5*this->RULES.ROBOT_MAX_GROUND_SPEED,
     1.0*this->RULES.ROBOT_MAX_GROUND_SPEED);
-  t_cross = this->calc_defend_spot(this->REACHABLE_HEIGHT);
+  t_cross = this->calc_defend_spot();
   t_block = this->calc_block_spot();
-  t_follow = this->calc_follow_spot();
+  t_follow = this->calc_follow_spot(2.0*this->RULES.BALL_RADIUS);
 }
+
+Role MyStrategy::calc_role() {
+  Role role = (this->robots.size() == 2 ? ATTACKER : GOALKEEPER);
+
+  for (int id : this->ally_ids)
+    if (id != this->me_id and
+        this->robots[id].position.z < this->me->position.z)
+      role = ATTACKER;
+
+  if (role == GOALKEEPER and
+      this->t_attack_aggro.exists and
+      this->t_attack_aggro.position.z <= this->DEFENSE_BORDER and
+      this->is_closer_than_enemies(t_attack_aggro.position)) {
+    role = AGGRESSIVE_DEFENDER;
+  }
+
+  if (this->t_attack.exists and role == ATTACKER)
+    if (not this->is_duplicate_target(this->t_attack.position,
+                                      this->RULES.BALL_RADIUS))
+      return ATTACKER;
+
+  if (this->t_attack_aggro.exists and role == AGGRESSIVE_DEFENDER)
+    if (not this->is_duplicate_target(this->t_attack_aggro.position,
+                                      this->RULES.BALL_RADIUS))
+      return AGGRESSIVE_DEFENDER;
+
+  if (not this->is_duplicate_target(this->t_cross.position,
+                                    this->RULES.BALL_RADIUS))
+    return GOALKEEPER;
+
+  if (this->t_block.exists /*and
+      not this->is_duplicate_target(this->t_block.position)*/)
+    return BLOCKER;
+
+  return FOLLOWER;
+}
+
+void MyStrategy::set_action(
+    model::Action &action,
+    const int &id,
+    const Vec3D &target_position,
+    const Vec3D &target_velocity,
+    const double &jump_speed,
+    const bool &use_nitro) {
+  action.target_velocity_x = target_velocity.x;
+  action.target_velocity_y = target_velocity.y;
+  action.target_velocity_z = target_velocity.z;
+  action.jump_speed = jump_speed;
+  action.use_nitro = use_nitro;
+
+  this->robots[id].target_position = target_position;
+  this->robots[id].target_velocity = target_velocity;
+  this->robots[id].jump_speed = jump_speed;
+}
+
 
 Target MyStrategy::calc_intercept_spot(
     const double &reachable_height,
     const bool &to_shift_x,
-    const double &z_delta,
+    const double &z_offset,
     const double &min_speed,
     const double &max_speed) {
   Vec2D target_position;
   Vec2D target_velocity;
-  for (PosVelTime &ball_pvt : this->ball.projected_path) {
+  for (const PosVelTime &ball_pvt : this->ball.projected_path) {
     if (this->sim.goal_scored(ball_pvt.position.z))
       break;
     if (ball_pvt.position.y > reachable_height)
@@ -211,7 +328,7 @@ Target MyStrategy::calc_intercept_spot(
       else if (target_position.x > this->GOAL_EDGE)
         target_position.x += this->RULES.ROBOT_RADIUS;
     }
-    target_position.z = ball_pvt.position.z - z_delta;
+    target_position.z = ball_pvt.position.z - z_offset;
 
     // if I'm farther than the target..
     if (this->me->position.z > target_position.z)
@@ -228,20 +345,18 @@ Target MyStrategy::calc_intercept_spot(
   return {false, Vec2D(), Vec2D()};
 }
 
-Target MyStrategy::calc_defend_spot(const double &reachable_height) {
+Target MyStrategy::calc_defend_spot() {
   Vec2D target_position(
-    std::clamp(this->ball.projected_path[0].position.x,
+    clamp(this->ball.projected_path[0].position.x,
           -(this->ARENA.goal_width/2.0-2*this->ARENA.bottom_radius),
           this->ARENA.goal_width/2.0-2*this->ARENA.bottom_radius),
     -this->ARENA.depth/2.0);
   Vec2D target_velocity = (target_position - this->me->position.drop()) *
                           this->RULES.ROBOT_MAX_GROUND_SPEED;
 
-  for (PosVelTime &ball_pvt : this->ball.projected_path) {
+  for (const PosVelTime &ball_pvt : this->ball.projected_path) {
     if (this->sim.goal_scored(ball_pvt.position.z))
       break;
-    if (ball_pvt.position.y > reachable_height)
-      continue;
     if (ball_pvt.time < BIG_EPS)
       continue;
 
@@ -257,24 +372,139 @@ Target MyStrategy::calc_defend_spot(const double &reachable_height) {
 }
 
 Target MyStrategy::calc_block_spot() {
-  Vec2D first_bounce;
-  for (Vec3D &bounce : this->ball.bounce_positions) {
-    if (bounce.y < BIG_EPS) {
-      first_bounce = bounce.drop();
-      break;
+  Vec2D first_bounce = this->get_first_reachable();
+
+  int nearest_id = this->get_id_pos_enemy_attacker(first_bounce);
+  if (nearest_id == -1)
+    return {false, Vec2D(), Vec2D()};
+
+  Vec2D target_position = geom::offset_to(
+    first_bounce,
+    this->robots[nearest_id].position.drop(),
+    2*this->RULES.BALL_RADIUS,
+    true);
+  Vec2D target_velocity = (target_position - this->me->position.drop()) *
+                          this->RULES.ROBOT_MAX_GROUND_SPEED;
+
+  return {
+    this->robots[nearest_id].type == ENEMY,
+    target_position,
+    target_velocity
+  };
+}
+
+Target MyStrategy::calc_follow_spot(const double &z_offset) {
+  Vec2D first_bounce = this->get_first_reachable();
+
+  Vec2D target_position = first_bounce;
+  if (target_position.x < -this->GOAL_EDGE)
+    target_position.x -= this->RULES.ROBOT_RADIUS;
+  else if (target_position.x > this->GOAL_EDGE)
+    target_position.x += this->RULES.ROBOT_RADIUS;
+  target_position.z -= z_offset;
+  Vec2D target_velocity = (target_position - this->me->position.drop()) *
+                          this->RULES.ROBOT_MAX_GROUND_SPEED;
+
+  return {true, target_position, target_velocity};
+}
+
+bool MyStrategy::is_duplicate_target(
+    const Vec2D &position,
+    const double &acceptable_delta) {
+  double dist_to_target = (position - this->me->position.drop()).len();
+
+  for (int id : this->ally_ids) {
+    if (id == this->me_id)  continue;
+    double other_dist_to_target = (position - this->robots[id].position.drop()).len();
+
+    double delta_targets = (this->robots[id].target_position.drop() - position).len();
+    if (delta_targets < acceptable_delta and
+        other_dist_to_target < dist_to_target)
+      return true;
+
+    // if (is_attacker(roles[robot.id]) and is_attacker(roles[id]) and
+    //     delta_pos_other.len() < delta_pos.len()) {
+    //   return true;
+    // }
+  }
+  return false;
+}
+
+Vec2D MyStrategy::get_first_reachable() {
+  for (const PosVelTime &ball_pvt : this->ball.projected_path)
+    if (ball_pvt.position.y <= this->REACHABLE_HEIGHT)
+      return ball_pvt.position.drop();
+  return Vec2D();
+}
+
+int MyStrategy::get_id_pos_enemy_attacker(const Vec2D &position) {
+  int nearest_id = -1;
+  int nearest_dist = INF;
+  for (int id : this->enemy_ids) {
+    if (this->robots[id].position.z < this->ball.position.z)
+      continue;
+    double dist = (this->robots[id].position.drop() - position).len();
+    if (dist < nearest_dist) {
+      nearest_id = id;
+      nearest_dist = dist;
     }
   }
-
-  int nearest_id = this->get_id_nearest_to(first_bounce);
-  return {false, Vec2D(), Vec2D()};
+  return nearest_id;
 }
 
-Target MyStrategy::calc_follow_spot() {
-  return {false, Vec2D(), Vec2D()};
+bool MyStrategy::is_closer_than_enemies(const Vec2D &position) {
+  double dist = (this->me->position.drop() - position).len();
+  for (const int &id : this->enemy_ids) {
+    double dist_other = (this->robots[id].position.drop() - position).len();
+    if (dist_other < dist)
+      return false;
+  }
+  return true;
 }
 
-int MyStrategy::get_id_nearest_to(const Vec2D &position) {
-  return -1;
+
+double MyStrategy::calc_jump_speed(const double &acceptable_jump_dist) {
+  auto [exists, ball_pos, robot_pos] = calc_valid_jump_intercept(
+     this->me->projected_jump_path,
+     this->ball.projected_path,
+     this->me->position);
+
+  if (not exists)
+    return 0.0;
+
+  if (this->me->role == AGGRESSIVE_DEFENDER and
+      this->me->velocity.len() > this->RULES.ROBOT_MAX_GROUND_SPEED-1)
+    return this->RULES.ROBOT_MAX_JUMP_SPEED;
+
+  if (this->me->position.z < robot_pos.z and
+      (ball_pos - robot_pos).len() <= acceptable_jump_dist)
+    return this->RULES.ROBOT_MAX_JUMP_SPEED;
+
+  return 0.0;
+}
+
+std::tuple<bool, Vec3D, Vec3D> MyStrategy::calc_valid_jump_intercept(
+    const Path &robot_path,
+    const Path &ball_path,
+    const Vec3D &robot_position) {
+  double prev_max_height = -INF;
+  for (int i = 0; i < std::min(int(robot_path.size()), int(ball_path.size())); ++i) {
+    assert(std::fabs(robot_path[i].time - ball_path[i].time) < BIG_EPS);
+    if ((ball_path[i].position - robot_path[i].position).len() <= this->RULES.BALL_RADIUS + this->RULES.ROBOT_RADIUS) {
+      if (ball_path[i].position.z >= robot_position.z and
+          ball_path[i].position.z >= robot_path[i].position.z + 0.5 and
+          ball_path[i].position.y >= robot_path[i].position.y and
+          robot_path[i].position.y >= prev_max_height) {
+        return std::forward_as_tuple(true, ball_path[i].position, robot_path[i].position);
+        // return {true, ball_path[i].position, robot_path[i].position};
+      } else
+        return std::forward_as_tuple(false, Vec3D(), Vec3D());
+        // return {false, Vec3D(), Vec3D()};
+    }
+    prev_max_height = std::max(prev_max_height, robot_path[i].position.y);
+  }
+  return std::forward_as_tuple(false, Vec3D(), Vec3D());
+  // return {false, Vec3D(), Vec3D()};
 }
 
 /*
@@ -687,30 +917,6 @@ double MyStrategy::calc_jump_speed() {
     return this->RULES.ROBOT_MAX_JUMP_SPEED;
 
   return 0.0;
-}
-
-std::tuple<bool, Vec3D, Vec3D> MyStrategy::calc_valid_jump_intercept(
-    const Path &robot_path,
-    const Path &ball_path,
-    const Vec3D &robot_position) {
-  double prev_max_height = -1e9;
-  for (int i = 0; i < std::min(int(robot_path.size()), int(ball_path.size())); ++i) {
-    assert(std::fabs(robot_path[i].time - ball_path[i].time) < BIG_EPS);
-    if ((ball_path[i].position - robot_path[i].position).len() <= this->RULES.BALL_RADIUS + this->RULES.ROBOT_RADIUS) {
-      if (ball_path[i].position.z >= robot_position.z and
-          ball_path[i].position.z >= robot_path[i].position.z + 0.5 and
-          ball_path[i].position.y >= robot_path[i].position.y and
-          robot_path[i].position.y >= prev_max_height) {
-        return std::forward_as_tuple(true, ball_path[i].position, robot_path[i].position);
-        // return {true, ball_path[i].position, robot_path[i].position};
-      } else
-        return std::forward_as_tuple(false, Vec3D(), Vec3D());
-        // return {false, Vec3D(), Vec3D()};
-    }
-    prev_max_height = std::max(prev_max_height, robot_path[i].position.y);
-  }
-  return std::forward_as_tuple(false, Vec3D(), Vec3D());
-  // return {false, Vec3D(), Vec3D()};
 }
 */
 
