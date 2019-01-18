@@ -48,3 +48,4 @@ for ((game = 0; game < $((BATCHES*NUM_CORES)); game++)) do
   done
 echo "VERSION $VERSION_P1 WINS: $P1_wins"
 echo "VERSION $VERSION_P2 WINS: $P2_wins"
+echo $P1_wins $P2_wins > run_results.txt
