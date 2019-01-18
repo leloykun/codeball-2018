@@ -76,9 +76,9 @@ void MyStrategy::act(
       break;
   }
 
-  std::cout<<me.id<<":\n"
-           <<this->me->position.drop().str()<<"||"<<target_position.str()<<"\n"
-           <<this->me->velocity.drop().len()<<"||"<<target_velocity.len()<<"\n";
+  // std::cout<<me.id<<":\n"
+  //          <<this->me->position.drop().str()<<"||"<<target_position.str()<<"\n"
+  //          <<this->me->velocity.drop().len()<<"||"<<target_velocity.len()<<"\n";
 
   this->set_action(
     action,
@@ -86,7 +86,7 @@ void MyStrategy::act(
     Vec3D(target_position, 0.0),
     Vec3D(target_velocity, 0.0),
     this->calc_jump_speed(this->REACHABLE_HEIGHT),
-    false
+    (not me.touch and this->me->velocity.y < 0)
   );
   /*
   switch (ActionSeq action_seq = this->calc_action(action, NUM_RAYS); action_seq) {
