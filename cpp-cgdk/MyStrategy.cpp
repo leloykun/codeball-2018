@@ -37,48 +37,31 @@ void MyStrategy::act(
   Vec2D target_position;
   Vec2D target_velocity;
 
-  Vec3D hover = this->me->position;
-  hover.y += 1.5*this->RULES.ROBOT_RADIUS;
-
   switch (this->me->role) {
     case ATTACKER:
       target_position = this->t_attack.position;
       target_velocity = this->t_attack.needed_velocity;
-      renderer.draw_sphere(hover, 0.5, RED, 1.0);
-      renderer.draw_sphere(Vec3D(target_position, 0.0), 1.0, RED, 0.5);
       break;
     case AGGRESSIVE_DEFENDER:
       target_position = this->t_attack_aggro.position;
       target_velocity = this->t_attack_aggro.needed_velocity;
-      renderer.draw_sphere(hover, 0.5, LIGHT_RED, 1.0);
-      renderer.draw_sphere(Vec3D(target_position, 0.0), 1.0, LIGHT_RED, 0.5);
       break;
     case GOALKEEPER:
       target_position = this->t_cross.position;
       target_velocity = this->t_cross.needed_velocity;
-      renderer.draw_sphere(hover, 0.5, BLUE, 1.0);
-      renderer.draw_sphere(Vec3D(target_position, 0.0), 1.0, BLUE, 0.5);
       break;
     case BLOCKER:
       target_position = this->t_block.position;
       target_velocity = this->t_block.needed_velocity;
-      renderer.draw_sphere(hover, 0.5, LIGHT_BLUE, 1.0);
-      renderer.draw_sphere(Vec3D(target_position, 0.0), 1.0, LIGHT_BLUE, 0.5);
       break;
     case FOLLOWER:
       target_position = this->t_follow.position;
       target_velocity = this->t_follow.needed_velocity;
-      renderer.draw_sphere(hover, 0.5, WHITE, 1.0);
-      renderer.draw_sphere(Vec3D(target_position, 0.0), 1.0, WHITE, 0.5);
       break;
     default:
       assert(false);
       break;
   }
-
-  // std::cout<<me.id<<":\n"
-  //          <<this->me->position.drop().str()<<"||"<<target_position.str()<<"\n"
-  //          <<this->me->velocity.drop().len()<<"||"<<target_velocity.len()<<"\n";
 
   this->set_action(
     action,
@@ -94,7 +77,7 @@ void MyStrategy::act(
 void MyStrategy::init_strategy(
     const model::Rules &rules,
     const model::Game &game) {
-  std::cout << "START!\n";
+  // std::cout << "START!\n";
 
   this->RULES = rules;
   this->ARENA = rules.arena;
@@ -110,7 +93,6 @@ void MyStrategy::init_strategy(
                             this->RULES.GRAVITY) +
                           this->RULES.ROBOT_MIN_RADIUS +
                           this->RULES.BALL_RADIUS;
-  std::cout<<this->REACHABLE_HEIGHT<<"\n";
   // this->ACCEPTABLE_JUMP_DISTANCE = this->REACHABLE_HEIGHT;
 
   this->GOAL_LIM_LEFT  = Vec2D(  this->ARENA.goal_width/2.0 - 2*this->RULES.ROBOT_RADIUS,  this->ARENA.depth/2.0);
@@ -135,8 +117,8 @@ void MyStrategy::init_tick(const model::Game &game) {
   // std::cout<<"----------------------\n";
   // std::cout<<"current tick: "<<this->current_tick<<"\n";
   this->current_tick = game.current_tick;
-  if (this->current_tick % 100 == 0)
-    std::cout << this->current_tick << "\n";
+  // if (this->current_tick % 100 == 0)
+  //   std::cout << this->current_tick << "\n";
 
   this->renderer.clear();
 }
@@ -456,162 +438,9 @@ std::tuple<bool, Vec3D, Vec3D> MyStrategy::calc_valid_jump_intercept(
   return std::forward_as_tuple(false, Vec3D(), Vec3D());
 }
 
-/*
-bool MyStrategy::is_closest_to_our_goal() {
-  double my_time_to_goal =
-    geom::time_to_go_to(
-      this->me->position.drop(),
-      this->me->velocity.drop(),
-      Vec2D(this->me->position.x, -this->ARENA.depth/2.0));
-  for (int id : this->ally_ids) {
-    if (id == this->me_id)
-      continue;
-
-    double time_to_goal =
-      geom::time_to_go_to(
-        this->robots[id].position.drop(),
-        this->robots[id].velocity.drop(),
-        Vec2D(this->robots[id].position.x, -this->ARENA.depth/2.0));
-
-    if (time_to_goal < my_time_to_goal)
-      return false;
-  }
-  return true;
-}
-*/
-/*
-bool MyStrategy::is_closer_than_enemies(const Vec2D &pos) {
-  double my_time_needed =
-    geom::time_to_go_to(
-      this->me->position.drop(),
-      this->me->velocity.drop(),
-      pos
-    );
-
-  // std::cout<<"dist:\n";
-  // std::cout<<"pos: "<<pos.str()<<"\n";
-  // std::cout<<"my time needed: "<<my_time_needed<<"\n";
-
-  for (int id : this->enemy_ids) {
-    double en_time_needed =
-      geom::time_to_go_to(
-        this->robots[id].position.drop(),
-        this->robots[id].velocity.drop(),
-        pos
-      );
-
-    // std::cout<<id<<" time needed: "<<en_time_needed<<"\n";
-    if (en_time_needed < my_time_needed)
-      return false;
-  }
-  return true;
-}
-*/
-/*
-bool MyStrategy::can_enemy_interrupt_before_us(const double &time_diff) {
-  for (PosVelTime &ball_pvt : this->ball.projected_path) {
-    if (this->sim.goal_scored(ball_pvt.position.z))
-      break;
-    if (ball_pvt.position.y > this->REACHABLE_HEIGHT)
-      continue;
-
-    double my_time_needed =
-      geom::time_to_go_to(
-        this->me->position.drop(),
-        this->me->velocity.drop(),
-        ball_pvt.position.drop()
-      );
-    // std::cout<<"------------------------------------\n";
-    // std::cout<<"ball_pvt.time: "<<ball_pvt.time<<"\n";
-    // std::cout<<"my_time_needed: "<<my_time_needed<<"\n";
-
-    for (int id : this->enemy_ids) {
-      double en_time_needed =
-        geom::time_to_go_to(
-          this->robots[id].position.drop(),
-          this->robots[id].velocity.drop(),
-          ball_pvt.position.drop()
-        );
-      // std::cout<<"(id: "<<en_time_needed<<")\n";
-
-      if (en_time_needed <= ball_pvt.time and
-          my_time_needed - en_time_needed >= time_diff)
-        return true;
-    }
-  }
-  return false;
-}
-*/
-/*
-std::tuple<Vec2D&, std::vector<Vec2D>& > MyStrategy::calc_targets_from(
-    const PosVelTime &robot_pvt,
-    const PosVelTime &ball_pvt,
-    const int &num_rays) {
-
-  Vec2D direct_target = geom::offset_to(
-      ball_pvt.position.drop(),
-      robot_pvt.position.drop(),
-      3 - 0.1);
-  std::vector<Vec2D> scoring_targets;
-
-  // draw_targets
-  // this->renderer.draw_sphere(
-  //   Vec3D(direct_target, ball_pvt.position.y), 1, BLACK, 1);
-
-  std::vector<Vec2D> tangents =
-    geom::get_tangents_to_circle(
-      ball_pvt.position.drop(),
-      this->RULES.BALL_RADIUS + this->RULES.ROBOT_RADIUS - 0.1,
-      robot_pvt.position.drop()
-    );
-
-  std::vector<Vec2D> edges;
-  if (int(tangents.size()) == 0)
-    return std::forward_as_tuple(direct_target, scoring_targets);
-  else if (int(tangents.size()) == 1)
-    edges = tangents;
-  else if (int(tangents.size()) == 2) {
-    Vec2D dir_tangents = tangents[1] - tangents[0];
-    for (int raw = 0; raw <= num_rays; ++raw) {
-      Vec2D in_point = tangents[0] + dir_tangents * (1.0*raw/num_rays);
-      Vec2D edge = geom::get_segment_circle_intersection(
-        ball_pvt.position.drop(),
-        this->RULES.BALL_RADIUS + this->RULES.ROBOT_RADIUS - 0.1,
-        in_point,
-        robot_pvt.position.drop());
-      edges.push_back(edge);
-    }
-  } else
-    assert(false);        // shouldn't happen
-
-
-  for (const Vec2D &edge : edges) {
-    EntityLite r_dummy = this->me->lighten();
-    r_dummy.position = Vec3D(edge, ball_pvt.position.y);
-    r_dummy.velocity = Vec3D(edge - robot_pvt.position.drop(), 0) *
-                       this->RULES.ROBOT_MAX_GROUND_SPEED;
-    r_dummy.velocity.clamp(this->RULES.ROBOT_MAX_GROUND_SPEED);
-    EntityLite b_dummy = this->ball.lighten();
-    b_dummy.position = ball_pvt.position;
-    b_dummy.velocity = ball_pvt.velocity;
-
-    bool has_collided = sim.collide_entities(r_dummy, b_dummy);
-    auto [can_score, intersection] = geom::ray_segment_intersection(
-      b_dummy.position.drop(),
-      b_dummy.velocity.drop(),
-      this->GOAL_LIM_LEFT,
-      this->GOAL_LIM_RIGHT);
-
-    assert(has_collided);
-    if (can_score)
-      scoring_targets.push_back(edge);
-  }
-
-  return std::forward_as_tuple(direct_target, scoring_targets);
-}
-*/
 
 std::string MyStrategy::custom_rendering() {
+  /*
   // draw borders
   this->renderer.draw_border(this->DEFENSE_BORDER);
   this->renderer.draw_border(this->CRITICAL_BORDER);
@@ -634,8 +463,6 @@ std::string MyStrategy::custom_rendering() {
   for (Vec3D position : this->ball.bounce_positions)
     this->renderer.draw_sphere(position, 1, BLACK, 1.0);
 
-
-
   // draw jump paths of the robots
   for (auto &[id, robot] : this->robots) {
     this->renderer.draw_path(robot.projected_jump_path, 0.5, YELLOW, 0.5, false);
@@ -648,8 +475,24 @@ std::string MyStrategy::custom_rendering() {
       0.5);
   }
 
-  return "";
+  for (int id : this->ally_ids) {
+    Vec3D hover = this->robots[id].position;
+    hover.y += 1.5*this->RULES.ROBOT_RADIUS;
+    this->renderer.draw_sphere(
+      hover,
+      0.5,
+      ColorMap[this->robots[id].role],
+      1.0);
+    this->renderer.draw_sphere(
+      this->robots[id].target_position,
+      1.0,
+      ColorMap[this->robots[id].role],
+      0.5);
+  }
+
   return this->renderer.get_json();
+  */
+  return "";
 }
 
 

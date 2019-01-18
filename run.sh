@@ -2,7 +2,7 @@ make -C cpp-cgdk/build || exit 1
 echo DONE MAKING!
 
 SOURCE_1=${1:-build/MyStrategy}
-SOURCE_2=${2:-versions/MyStrategy_v33_nodebug}
+SOURCE_2=${2:-versions/MyStrategy_v35_nodebug}
 
 codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p2-name PREV-STRAT \
   --p2 tcp-31002 --results-file res.txt --duration 7200 --no-countdown \

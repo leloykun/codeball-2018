@@ -28,6 +28,8 @@ const Color BLACK      (0.0, 0.0, 0.0);
 const Color LIGHT_RED  (1.0, 0.5, 0.5);
 const Color LIGHT_BLUE (0.5, 0.5, 1.0);
 
+const std::vector<Color> ColorMap = {RED, LIGHT_RED, BLUE, LIGHT_BLUE, WHITE};
+
 class RenderUtil {
   std::vector<std::string> objects;
 
