@@ -1,3 +1,5 @@
+SECONDS=0
+
 rm -- codeball2018-linux/result*.txt
 rm -- codeball2018-linux/game*.log
 
@@ -60,3 +62,4 @@ for ((game = 0; game < $((BATCHES*NUM_CORES)); game++)) do
 echo "VERSION $VERSION_P1 || WINS: $P1_wins || SCORE: $P1_scores"
 echo "VERSION $VERSION_P2 || WINS: $P2_wins || SCORE: $P2_scores"
 echo "$P1_wins $P2_wins || $P1_scores $P2_scores" > run_results.txt
+echo "time taken: $SECONDS"
