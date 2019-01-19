@@ -411,14 +411,18 @@ std::tuple<bool, Vec3D, double> MyStrategy::get_first_reachable_by(
 
 int MyStrategy::get_id_pos_enemy_attacker(const Vec2D &position) {
   int nearest_id = -1;
-  int nearest_dist = INF;
+  int nearest_time = INF;
   for (int id : this->enemy_ids) {
     if (this->robots[id].position.z < this->ball.position.z)
       continue;
-    double dist = (this->robots[id].position.drop() - position).len();
-    if (dist < nearest_dist) {
+    double time_needed = geom::time_to_go_to(
+      this->robots[id].position.drop(),
+      this->robots[id].velocity.drop(),
+      position
+    );
+    if (time_needed < nearest_time) {
       nearest_id = id;
-      nearest_dist = dist;
+      nearest_time = time_needed;
     }
   }
   return nearest_id;
