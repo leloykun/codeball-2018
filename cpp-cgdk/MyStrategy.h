@@ -61,12 +61,6 @@ public:
   int me_id;
   Entity *me;
 
-  /*
-  Target t_attack;
-  Target t_defend;
-  Target t_prepare;
-  Target t_block;
-  */
   Target t_attack;
   Target t_attack_aggro;
   Target t_cross;
@@ -108,7 +102,7 @@ public:
   bool is_duplicate_target(
       const Vec2D &position,
       const double &acceptable_delta);
-  Vec2D get_first_reachable();
+  std::tuple<bool, Vec3D, double> get_first_reachable_by(const int &id);
   int get_id_pos_enemy_attacker(const Vec2D &position);
   bool can_arrive_earlier_than_enemies(const Vec2D &position);
 

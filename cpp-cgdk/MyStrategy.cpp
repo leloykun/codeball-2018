@@ -139,7 +139,10 @@ void MyStrategy::init_query(const int &me_id, const model::Game &game) {
 }
 
 void MyStrategy::run_simulation(const model::Game &game) {
-  this->sim.calc_ball_path(this->ball, SIMULATION_NUM_TICKS, SIMULATION_PRECISION);
+  this->sim.calc_ball_path(
+    this->ball,
+    SIMULATION_NUM_TICKS,
+    SIMULATION_PRECISION);
 
   for (int id : this->ally_ids)
     this->sim.calc_robot_path(
@@ -302,14 +305,28 @@ Target MyStrategy::calc_defend_spot() {
 }
 
 Target MyStrategy::calc_block_spot(const double &offset) {
-  Vec2D first_bounce = this->get_first_reachable();
+  int nearest_id = -1;
+  Vec2D en_attack_pos;
+  double en_attack_time = INF;
 
+  for (int id : this->enemy_ids) {
+    auto [exists, first_reachable, time] = this->get_first_reachable_by(id);
+    if (exists and time < en_attack_time) {
+      nearest_id = id;
+      en_attack_pos = first_reachable.drop();
+      en_attack_time = time;
+    }
+  }
+
+  /*
+  Vec2D first_bounce = this->get_first_reachable_by();
   int nearest_id = this->get_id_pos_enemy_attacker(first_bounce);
+  */
   if (nearest_id == -1)
     return {false, Vec2D(), Vec2D()};
 
   Vec2D target_position = geom::offset_to(
-    first_bounce,
+    en_attack_pos,
     this->robots[nearest_id].position.drop(),
     offset,
     true);
@@ -324,15 +341,25 @@ Target MyStrategy::calc_block_spot(const double &offset) {
 }
 
 Target MyStrategy::calc_follow_spot(const double &z_offset) {
-  Vec2D first_bounce = this->get_first_reachable();
+  Vec2D target_position;
+  Vec2D target_velocity;
 
-  Vec2D target_position = first_bounce;
+  auto [exists, first_reachable, time] =
+    this->get_first_reachable_by(this->me_id);
+
+  if (exists)
+    target_position = first_reachable.drop();
+  else
+    target_position = this->ball.bounce_positions[0].drop();
+
+  this->renderer.draw_sphere(Vec3D(target_position, 0.0), 1, WHITE, 1);
+
   if (target_position.x < -this->GOAL_EDGE)
     target_position.x -= this->RULES.ROBOT_RADIUS;
   else if (target_position.x > this->GOAL_EDGE)
     target_position.x += this->RULES.ROBOT_RADIUS;
   target_position.z -= z_offset;
-  Vec2D target_velocity = (target_position - this->me->position.drop()) *
+  target_velocity = (target_position - this->me->position.drop()) *
                           this->RULES.ROBOT_MAX_GROUND_SPEED;
 
   return {true, target_position, target_velocity};
@@ -360,11 +387,22 @@ bool MyStrategy::is_duplicate_target(
   return false;
 }
 
-Vec2D MyStrategy::get_first_reachable() {
-  for (const PosVelTime &ball_pvt : this->ball.projected_path)
-    if (ball_pvt.position.y <= this->REACHABLE_HEIGHT)
-      return ball_pvt.position.drop();
-  return Vec2D();
+std::tuple<bool, Vec3D, double> MyStrategy::get_first_reachable_by(
+    const int &id) {
+  for (const PosVelTime &ball_pvt : this->ball.projected_path) {
+    if (ball_pvt.position.y > this->REACHABLE_HEIGHT)
+      continue;
+
+    double needed_time = geom::time_to_go_to(
+      this->robots[id].position.drop(),
+      this->robots[id].velocity.drop(),
+      ball_pvt.position.drop()
+    );
+
+    if (needed_time <= ball_pvt.time)
+      return {true, ball_pvt.position, ball_pvt.time};
+  }
+  return {false, Vec3D(), 0.0};
 }
 
 int MyStrategy::get_id_pos_enemy_attacker(const Vec2D &position) {
@@ -392,6 +430,7 @@ bool MyStrategy::can_arrive_earlier_than_enemies(const Vec2D &position) {
   }
   return true;
   */
+  /*
   double my_time_needed = 0.0;
   Vec2D from_pos = this->me->position.drop();
   if (not this->me->touch) {
@@ -411,8 +450,15 @@ bool MyStrategy::can_arrive_earlier_than_enemies(const Vec2D &position) {
     this->me->velocity.drop(),
     position
   );
+  */
+  double my_time_needed = geom::time_to_go_to(
+    this->me->position.drop(),
+    this->me->velocity.drop(),
+    position
+  );
 
   for (int id : this->enemy_ids) {
+    /*
     double en_time_needed = 0.0;
     from_pos = this->robots[id].position.drop();
     if (not this->robots[id].touch) {
@@ -429,6 +475,12 @@ bool MyStrategy::can_arrive_earlier_than_enemies(const Vec2D &position) {
     }
     en_time_needed += geom::time_to_go_to(
       from_pos,
+      this->robots[id].velocity.drop(),
+      position
+    );
+    */
+    double en_time_needed = geom::time_to_go_to(
+      this->robots[id].position.drop(),
       this->robots[id].velocity.drop(),
       position
     );
@@ -483,7 +535,7 @@ std::tuple<bool, Vec3D, Vec3D> MyStrategy::calc_valid_jump_intercept(
 
 
 std::string MyStrategy::custom_rendering() {
-  /*
+
   // draw borders
   this->renderer.draw_border(this->DEFENSE_BORDER);
   this->renderer.draw_border(this->CRITICAL_BORDER);
@@ -548,7 +600,7 @@ std::string MyStrategy::custom_rendering() {
   }
 
   return this->renderer.get_json();
-  */
+
   return "";
 }
 
