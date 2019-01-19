@@ -18,7 +18,7 @@
 
 #include <iostream>
 
-const int VERBOSITY = 1;
+const int VERBOSITY = 0;
 const int SIMULATION_NUM_TICKS = 240;
 const double SIMULATION_PRECISION = 1/60.0;
 const int NUM_RAYS = 20;
