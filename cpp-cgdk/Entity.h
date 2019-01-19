@@ -11,6 +11,7 @@
 #include "model/Robot.h"
 
 #include "PointVectors.h"
+#include <tuple>
 
 enum Role {
   ATTACKER,
@@ -74,6 +75,7 @@ struct Entity {
   Path projected_jump_path;
   bool touch;
   double nitro_amount;
+  std::tuple<bool, Vec3D, double> first_ball_intercept;
 
   Entity() { }
   Entity(const model::Ball &ball, const model::Rules RULES);

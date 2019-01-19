@@ -111,29 +111,32 @@ namespace geom {
       const Vec2D &origin,
       const Vec2D &init_velocity,
       const Vec2D &destination,
+      const bool &has_acceleration,
       const double &acceleration,
       const double &max_speed) {
     Vec2D dir = destination - origin;
     double dist = dir.len();
     double speed = init_velocity.dot(dir.normalize());
 
-    double t_maxv = (max_speed - speed) / acceleration;
-    double t_reach = (std::sqrt(speed*speed + 2*acceleration*dist) - speed) /
-                     acceleration;
+    if (has_acceleration) {
+      double t_maxv = (max_speed - speed) / acceleration;
+      double t_reach = (std::sqrt(speed*speed + 2*acceleration*dist) - speed) /
+                       acceleration;
 
-    assert(t_reach > -EPS);
+      assert(t_reach > -EPS);
 
-    if (t_maxv < t_reach) {
-      /*      ----------
-       *     /
-       *    /
-       */
-      double dist_left = dist - 0.5 * (speed + max_speed) * t_maxv;
-      double t_left = dist_left / max_speed;
-      return t_maxv + t_left;
-    } else {
-      return t_reach;
-    }
+      if (t_maxv < t_reach) {
+        /*      ----------
+         *     /
+         *    /
+         */
+        double dist_left = dist - 0.5 * (speed + max_speed) * t_maxv;
+        double t_left = dist_left / max_speed;
+        return t_maxv + t_left;
+      } else
+        return t_reach;
+    } else
+      return dist / speed;
   }
 
   std::tuple<bool, Vec2D, double> calc_flight(

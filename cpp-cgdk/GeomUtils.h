@@ -38,6 +38,7 @@ namespace geom {
       const Vec2D &origin,
       const Vec2D &init_velocity,
       const Vec2D &destination,
+      const bool &has_acceleration = true,
       const double &acceleration = 100,
       const double &max_speed = 30);
 

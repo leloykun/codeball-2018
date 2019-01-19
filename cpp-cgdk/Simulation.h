@@ -11,6 +11,7 @@
 #include "model/Robot.h"
 
 #include "PointVectors.h"
+#include "GeomUtils.h"
 #include "Entity.h"
 
 #include <iostream>
@@ -18,6 +19,7 @@
 #include <vector>
 #include <cassert>
 #include <map>
+#include <tuple>
 
 const std::vector<double> TICK_PARTITION = {0.01, 0.01, 0.18, 0.20, 0.20, 0.20, 0.20};
 // const std::vector<double> TICK_PARTITION = {0.01, 0.01, 0.98};
@@ -73,6 +75,14 @@ struct Simulation {
       const JumpMethod &jump_method = BY_TICK,
       const int &jump_on_tick = 0,
       const double &jump_on_speed = 0.0);
+  double calc_travel_time(
+      const Entity &robot,
+      const Vec2D &target_position);
+  std::tuple<bool, Vec3D, double> calc_ball_intercept(
+      const Entity &robot,
+      const Entity &ball,
+      const double &reachable_height,
+      const double &time_lim=INF);
 
   // ----------- Found in: SimUtils.cpp ---------------
   DaN dan_to_plane(

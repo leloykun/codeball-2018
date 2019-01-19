@@ -16,9 +16,9 @@
 #include <tuple>
 #include <map>
 
-// #include <iostream>
+#include <iostream>
 
-const int VERBOSITY = 0;
+const int VERBOSITY = 1;
 const int SIMULATION_NUM_TICKS = 240;
 const double SIMULATION_PRECISION = 1/60.0;
 const int NUM_RAYS = 20;
@@ -27,6 +27,7 @@ struct Target {
   bool exists;
   Vec2D position;
   Vec2D needed_velocity;
+  double needed_time;
 };
 
 class MyStrategy : public Strategy {
@@ -103,19 +104,15 @@ public:
   bool is_duplicate_target(
       const Vec2D &position,
       const double &acceptable_delta);
-  std::tuple<bool, Vec3D, double> get_first_reachable_by(const int &id);
-  int get_id_pos_enemy_attacker(const Vec2D &position);
-  bool can_arrive_earlier_than_enemies(const Vec2D &position);
+  bool can_enemies_intercept_earlier(const double &until);
 
   double calc_jump_speed(const double &acceptable_jump_dist);
   std::tuple<bool, Vec3D, Vec3D> calc_valid_jump_intercept(
       const Path &robot_path,
       const Path &ball_path,
       const Vec3D &robot_position);
+
   /*
-  bool is_closest_to_our_goal();
-  bool is_closer_than_enemies(const Vec2D &pos);
-  bool can_enemy_interrupt_before_us(const double &time_diff);
   std::tuple<Vec2D&, std::vector<Vec2D>& > calc_targets_from(
       const PosVelTime &robot_pvt,
       const PosVelTime &ball_pvt,
