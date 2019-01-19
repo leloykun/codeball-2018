@@ -37,7 +37,7 @@ for ((batch = 0; batch < $BATCHES; batch++)) do
   let P2_wins=0
   let P1_scores=0
   let P2_scores=0
-  for ((game = 0; game < $((BATCHES*NUM_CORES)); game++)) do
+  for ((game = 0; game < $(((batch+1)*NUM_CORES)); game++)) do
       readarray -t RESFILE < codeball2018-linux/result_$game.txt
       echo ${RESFILE[@]}
 
