@@ -38,6 +38,9 @@ void Entity::update(const model::Robot &robot) {
   this->position = {robot.x, robot.z, robot.y};
   this->velocity = {robot.velocity_x, robot.velocity_z, robot.velocity_y};
   this->radius = robot.radius;
+
+  this->touch = robot.touch;
+  this->nitro_amount = robot.nitro_amount;
 }
 
 EntityLite Entity::lighten() const {

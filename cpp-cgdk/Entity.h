@@ -72,6 +72,8 @@ struct Entity {
   Role role;
   // ActionSeq action_seq;
   Path projected_jump_path;
+  bool touch;
+  double nitro_amount;
 
   Entity() { }
   Entity(const model::Ball &ball, const model::Rules RULES);

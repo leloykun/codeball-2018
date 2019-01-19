@@ -40,6 +40,11 @@ namespace geom {
       const Vec2D &destination,
       const double &acceleration = 100,
       const double &max_speed = 30);
+
+  std::tuple<bool, Vec2D, double> calc_flight(
+      const Vec3D &position,
+      const Vec3D &velocity,
+      const double &gravity);
 }
 
 #endif

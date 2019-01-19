@@ -11,11 +11,12 @@
 #include "RenderUtil.h"
 #include "GeomUtils.h"
 #include "Entity.h"
-// #include <iostream>
 #include <string>
 #include <vector>
 #include <tuple>
 #include <map>
+
+// #include <iostream>
 
 const int SIMULATION_NUM_TICKS = 240;
 const double SIMULATION_PRECISION = 1/60.0;

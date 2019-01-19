@@ -192,15 +192,17 @@ Role MyStrategy::calc_role() {
     role = AGGRESSIVE_DEFENDER;
   }
 
-  if (this->t_attack.exists and role == ATTACKER)
-    if (not this->is_duplicate_target(this->t_attack.position,
+  if (role == ATTACKER and
+      this->t_attack.exists and
+      not this->is_duplicate_target(this->t_attack.position,
                                       this->RULES.BALL_RADIUS))
-      return ATTACKER;
+    return ATTACKER;
 
-  if (this->t_attack_aggro.exists and role == AGGRESSIVE_DEFENDER)
-    if (not this->is_duplicate_target(this->t_attack_aggro.position,
+  if (role == AGGRESSIVE_DEFENDER and
+      this->t_attack_aggro.exists and
+      not this->is_duplicate_target(this->t_attack_aggro.position,
                                       this->RULES.BALL_RADIUS))
-      return AGGRESSIVE_DEFENDER;
+    return AGGRESSIVE_DEFENDER;
 
   if (not this->is_duplicate_target(this->t_cross.position,
                                     this->RULES.BALL_RADIUS))
@@ -390,20 +392,46 @@ bool MyStrategy::can_arrive_earlier_than_enemies(const Vec2D &position) {
   }
   return true;
   */
-  double my_time_needed =
-    geom::time_to_go_to(
-      this->me->position.drop(),
-      this->me->velocity.drop(),
-      position
-    );
+  double my_time_needed = 0.0;
+  Vec2D from_pos = this->me->position.drop();
+  if (not this->me->touch) {
+    auto [exists, land_pos, time_flight] =
+      geom::calc_flight(
+        this->me->position,
+        this->me->velocity,
+        -this->RULES.GRAVITY
+      );
+    if (exists) {
+      from_pos = land_pos;
+      my_time_needed += time_flight;
+    }
+  }
+  my_time_needed += geom::time_to_go_to(
+    from_pos,
+    this->me->velocity.drop(),
+    position
+  );
 
   for (int id : this->enemy_ids) {
-    double en_time_needed =
-      geom::time_to_go_to(
-        this->robots[id].position.drop(),
-        this->robots[id].velocity.drop(),
-        position
-      );
+    double en_time_needed = 0.0;
+    from_pos = this->robots[id].position.drop();
+    if (not this->robots[id].touch) {
+      auto [exists, land_pos, time_flight] =
+        geom::calc_flight(
+          this->robots[id].position,
+          this->robots[id].velocity,
+          -this->RULES.GRAVITY
+        );
+      if (exists) {
+        from_pos = land_pos;
+        en_time_needed += time_flight;
+      }
+    }
+    en_time_needed += geom::time_to_go_to(
+      from_pos,
+      this->robots[id].velocity.drop(),
+      position
+    );
 
     if (en_time_needed < my_time_needed)
       return false;
@@ -505,10 +533,23 @@ std::string MyStrategy::custom_rendering() {
       0.5);
   }
 
+  for (int id : this->robot_ids) {
+    auto [exists, final_pos, t_flight] =
+      geom::calc_flight(
+        this->robots[id].position,
+        this->robots[id].velocity,
+        -this->RULES.GRAVITY);
+    if (exists)
+      this->renderer.draw_sphere(
+        Vec3D(final_pos, 0.0),
+        1.0,
+        BLACK,
+        0.5);
+  }
+
   return this->renderer.get_json();
   */
   return "";
 }
-
 
 #endif

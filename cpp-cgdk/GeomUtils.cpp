@@ -6,7 +6,8 @@
 #define _GEOM_UTILS_CPP_
 
 #include "GeomUtils.h"
-#include <iostream>
+
+// #include <iostream>
 
 namespace geom {
   std::vector<Vec2D> get_tangents_to_circle(
@@ -117,7 +118,10 @@ namespace geom {
     double speed = init_velocity.dot(dir.normalize());
 
     double t_maxv = (max_speed - speed) / acceleration;
-    double t_reach = (std::sqrt(speed*speed + 2 * acceleration * dist) - speed) / acceleration;
+    double t_reach = (std::sqrt(speed*speed + 2*acceleration*dist) - speed) /
+                     acceleration;
+
+    assert(t_reach > -EPS);
 
     if (t_maxv < t_reach) {
       /*      ----------
@@ -130,6 +134,22 @@ namespace geom {
     } else {
       return t_reach;
     }
+  }
+
+  std::tuple<bool, Vec2D, double> calc_flight(
+      const Vec3D &position,
+      const Vec3D &velocity,
+      const double &gravity) {
+    double determinant = velocity.y*velocity.y + 2*gravity*(1-position.y);
+    if (determinant < EPS)
+      return {false, Vec2D(), 0.0};
+    double t_flight_1 = (-velocity.y + std::sqrt(determinant)) /
+                        gravity;
+    double t_flight_2 = (-velocity.y - std::sqrt(determinant)) /
+                        gravity;
+    double t_flight = std::max(t_flight_1, t_flight_2);
+    Vec2D final_pos = position.drop() + velocity.drop() * t_flight;
+    return {true, final_pos, t_flight};
   }
 }
 
