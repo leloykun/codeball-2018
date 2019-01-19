@@ -32,34 +32,33 @@ for ((batch = 0; batch < $BATCHES; batch++)) do
     done
     wait
     echo "DONE BATCH $batch"
+  echo "RESULTS:"
+  let P1_wins=0
+  let P2_wins=0
+  let P1_scores=0
+  let P2_scores=0
+  for ((game = 0; game < $((BATCHES*NUM_CORES)); game++)) do
+      readarray -t RESFILE < codeball2018-linux/result_$game.txt
+      echo ${RESFILE[@]}
+
+      IFS=':' read -ra P1_res <<< "${RESFILE[0]}"
+      IFS=':' read -ra P2_res <<< "${RESFILE[1]}"
+      # echo ${P1_res[@]}
+      # echo ${P2_res[@]}
+
+      let P1_scores=$((P1_scores+P1_res[1]))
+      let P2_scores=$((P2_scores+P2_res[1]))
+
+      if ((${RESFILE[0]:0:1} == "1" && ${RESFILE[1]:0:1} == "2"))
+      then
+        let P1_wins=$P1_wins+1
+      elif ((${RESFILE[0]:0:1} == "2" && ${RESFILE[1]:0:1} == "1"))
+      then
+        let P2_wins=$P2_wins+1
+      fi
+    done
+  echo "VERSION $VERSION_P1 || WINS: $P1_wins || SCORE: $P1_scores"
+  echo "VERSION $VERSION_P2 || WINS: $P2_wins || SCORE: $P2_scores"
+  echo "$P1_wins $P2_wins || $P1_scores $P2_scores" > run_results.txt
   done
-
-echo "RESULTS:"
-let P1_wins=0
-let P2_wins=0
-let P1_scores=0
-let P2_scores=0
-for ((game = 0; game < $((BATCHES*NUM_CORES)); game++)) do
-    readarray -t RESFILE < codeball2018-linux/result_$game.txt
-    echo ${RESFILE[@]}
-
-    IFS=':' read -ra P1_res <<< "${RESFILE[0]}"
-    IFS=':' read -ra P2_res <<< "${RESFILE[1]}"
-    # echo ${P1_res[@]}
-    # echo ${P2_res[@]}
-
-    let P1_scores=$((P1_scores+P1_res[1]))
-    let P2_scores=$((P2_scores+P2_res[1]))
-
-    if ((${RESFILE[0]:0:1} == "1" && ${RESFILE[1]:0:1} == "2"))
-    then
-      let P1_wins=$P1_wins+1
-    elif ((${RESFILE[0]:0:1} == "2" && ${RESFILE[1]:0:1} == "1"))
-    then
-      let P2_wins=$P2_wins+1
-    fi
-  done
-echo "VERSION $VERSION_P1 || WINS: $P1_wins || SCORE: $P1_scores"
-echo "VERSION $VERSION_P2 || WINS: $P2_wins || SCORE: $P2_scores"
-echo "$P1_wins $P2_wins || $P1_scores $P2_scores" > run_results.txt
 echo "time taken: $SECONDS secs"

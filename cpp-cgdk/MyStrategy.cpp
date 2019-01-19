@@ -77,7 +77,8 @@ void MyStrategy::act(
 void MyStrategy::init_strategy(
     const model::Rules &rules,
     const model::Game &game) {
-  // std::cout << "START!\n";
+  if (VERBOSITY == 1)
+    std::cout << "START!\n";
 
   this->RULES = rules;
   this->ARENA = rules.arena;
@@ -113,12 +114,14 @@ void MyStrategy::init_strategy(
 
 void MyStrategy::init_tick(const model::Game &game) {
   assert(this->initialized);
-
-  // std::cout<<"----------------------\n";
-  // std::cout<<"current tick: "<<this->current_tick<<"\n";
   this->current_tick = game.current_tick;
-  // if (this->current_tick % 100 == 0)
-  //   std::cout << this->current_tick << "\n";
+
+  if (VERBOSITY == 1 and this->current_tick % 100 == 0)
+      std::cout << this->current_tick << "\n";
+  else if (VERBOSITY == 2) {
+    std::cout << "----------------------\n";
+    std::cout << "current tick: "<<this->current_tick<<"\n";
+  }
 
   this->renderer.clear();
 }
@@ -352,7 +355,8 @@ Target MyStrategy::calc_follow_spot(const double &z_offset) {
   else
     target_position = this->ball.bounce_positions[0].drop();
 
-  this->renderer.draw_sphere(Vec3D(target_position, 0.0), 1, WHITE, 1);
+  if (VERBOSITY == 1)
+    this->renderer.draw_sphere(Vec3D(target_position, 0.0), 1, WHITE, 1);
 
   if (target_position.x < -this->GOAL_EDGE)
     target_position.x -= this->RULES.ROBOT_RADIUS;
@@ -535,73 +539,72 @@ std::tuple<bool, Vec3D, Vec3D> MyStrategy::calc_valid_jump_intercept(
 
 
 std::string MyStrategy::custom_rendering() {
+  if (VERBOSITY == 1) {
+    // draw borders
+    this->renderer.draw_border(this->DEFENSE_BORDER);
+    this->renderer.draw_border(this->CRITICAL_BORDER);
 
-  // draw borders
-  this->renderer.draw_border(this->DEFENSE_BORDER);
-  this->renderer.draw_border(this->CRITICAL_BORDER);
-
-  // draw goal
-  this->renderer.draw_line(
-    Vec3D(this->GOAL_LIM_LEFT, 1.0),
-    Vec3D(this->GOAL_LIM_RIGHT, 1.0),
-    10,
-    RED,
-    0.5);
-  this->renderer.draw_sphere(Vec3D(this->GOAL_LIM_LEFT, 1.0), 1, RED, 1);
-  this->renderer.draw_sphere(Vec3D(this->GOAL_LIM_RIGHT, 1.0), 1, RED, 1);
-
-  // draw supersized ball
-  this->renderer.draw_sphere(this->ball.position, 3, WHITE, 0.1);
-
-  // draw ball path
-  this->renderer.draw_path(this->ball.projected_path, 0.5, RED, 0.5);
-  for (Vec3D position : this->ball.bounce_positions)
-    this->renderer.draw_sphere(position, 1, BLACK, 1.0);
-
-  // draw jump paths of the robots
-  for (auto &[id, robot] : this->robots) {
-    this->renderer.draw_path(robot.projected_jump_path, 0.5, YELLOW, 0.5, false);
-    this->renderer.draw_path(robot.projected_path, 0.5, TEAL, 0.5, false);
+    // draw goal
     this->renderer.draw_line(
-      robot.position,
-      Vec3D(robot.position.x, robot.position.z, ARENA.height),
+      Vec3D(this->GOAL_LIM_LEFT, 1.0),
+      Vec3D(this->GOAL_LIM_RIGHT, 1.0),
       10,
-      (robot.position.y > RULES.ROBOT_RADIUS ? YELLOW : TEAL),
+      RED,
       0.5);
-  }
+    this->renderer.draw_sphere(Vec3D(this->GOAL_LIM_LEFT, 1.0), 1, RED, 1);
+    this->renderer.draw_sphere(Vec3D(this->GOAL_LIM_RIGHT, 1.0), 1, RED, 1);
 
-  for (int id : this->ally_ids) {
-    Vec3D hover = this->robots[id].position;
-    hover.y += 1.5*this->RULES.ROBOT_RADIUS;
-    this->renderer.draw_sphere(
-      hover,
-      0.5,
-      ColorMap[this->robots[id].role],
-      1.0);
-    this->renderer.draw_sphere(
-      this->robots[id].target_position,
-      1.0,
-      ColorMap[this->robots[id].role],
-      0.5);
-  }
+    // draw supersized ball
+    this->renderer.draw_sphere(this->ball.position, 3, WHITE, 0.1);
 
-  for (int id : this->robot_ids) {
-    auto [exists, final_pos, t_flight] =
-      geom::calc_flight(
-        this->robots[id].position,
-        this->robots[id].velocity,
-        -this->RULES.GRAVITY);
-    if (exists)
-      this->renderer.draw_sphere(
-        Vec3D(final_pos, 0.0),
-        1.0,
-        BLACK,
+    // draw ball path
+    this->renderer.draw_path(this->ball.projected_path, 0.5, RED, 0.5);
+    for (Vec3D position : this->ball.bounce_positions)
+      this->renderer.draw_sphere(position, 1, BLACK, 1.0);
+
+    // draw jump paths of the robots
+    for (auto &[id, robot] : this->robots) {
+      this->renderer.draw_path(robot.projected_jump_path, 0.5, YELLOW, 0.5, false);
+      this->renderer.draw_path(robot.projected_path, 0.5, TEAL, 0.5, false);
+      this->renderer.draw_line(
+        robot.position,
+        Vec3D(robot.position.x, robot.position.z, ARENA.height),
+        10,
+        (robot.position.y > RULES.ROBOT_RADIUS ? YELLOW : TEAL),
         0.5);
+    }
+
+    for (int id : this->ally_ids) {
+      Vec3D hover = this->robots[id].position;
+      hover.y += 1.5*this->RULES.ROBOT_RADIUS;
+      this->renderer.draw_sphere(
+        hover,
+        0.5,
+        ColorMap[this->robots[id].role],
+        1.0);
+      this->renderer.draw_sphere(
+        this->robots[id].target_position,
+        1.0,
+        ColorMap[this->robots[id].role],
+        0.5);
+    }
+
+    for (int id : this->robot_ids) {
+      auto [exists, final_pos, t_flight] =
+        geom::calc_flight(
+          this->robots[id].position,
+          this->robots[id].velocity,
+          -this->RULES.GRAVITY);
+      if (exists)
+        this->renderer.draw_sphere(
+          Vec3D(final_pos, 0.0),
+          1.0,
+          BLACK,
+          0.5);
+    }
   }
 
   return this->renderer.get_json();
-
-  return "";
 }
 
 #endif
