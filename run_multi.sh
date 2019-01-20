@@ -7,8 +7,8 @@ NUM_CORES=4
 
 BATCHES=${1:-1}
 DURATION=${2:-18000}
-VERSION_P1=${3:-38}
-VERSION_P2=${4:-39}
+VERSION_P1=${3:-39}
+VERSION_P2=${4:-40}
 
 for ((batch = 0; batch < $BATCHES; batch++)) do
   for ((core = 0; core < $NUM_CORES; core++)) do
@@ -57,8 +57,9 @@ for ((batch = 0; batch < $BATCHES; batch++)) do
         let P2_wins=$P2_wins+1
       fi
     done
+  echo "BATCH $batch DONE"
   echo "VERSION $VERSION_P1 || WINS: $P1_wins || SCORE: $P1_scores"
   echo "VERSION $VERSION_P2 || WINS: $P2_wins || SCORE: $P2_scores"
   echo "$P1_wins $P2_wins || $P1_scores $P2_scores" > run_results.txt
+  echo "time taken: $SECONDS secs"
   done
-echo "time taken: $SECONDS secs"

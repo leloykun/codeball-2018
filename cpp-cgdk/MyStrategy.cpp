@@ -211,13 +211,13 @@ Role MyStrategy::calc_role() {
   if (role == ATTACKER and
       this->t_attack.exists and
       not this->is_duplicate_target(this->t_attack.position,
-                                      this->RULES.BALL_RADIUS))
+                                    4*this->RULES.BALL_RADIUS))
     return ATTACKER;
 
   if (role == AGGRESSIVE_DEFENDER and
       this->t_attack_aggro.exists and
       not this->is_duplicate_target(this->t_attack_aggro.position,
-                                      this->RULES.BALL_RADIUS))
+                                    4*this->RULES.BALL_RADIUS))
     return AGGRESSIVE_DEFENDER;
 
   if (not this->is_duplicate_target(this->t_cross.position,
@@ -461,7 +461,7 @@ std::tuple<bool, Vec3D, Vec3D> MyStrategy::calc_valid_jump_intercept(
   for (int i = 0; i < std::min(int(robot_path.size()), int(ball_path.size())); ++i) {
     assert(std::fabs(robot_path[i].time - ball_path[i].time) < BIG_EPS);
     if ((ball_path[i].position - robot_path[i].position).len() <= this->RULES.BALL_RADIUS + this->RULES.ROBOT_RADIUS) {
-      if (ball_path[i].position.z >= robot_position.z and
+      if (// ball_path[i].position.z >= robot_position.z and //
           ball_path[i].position.z >= robot_path[i].position.z + 0.5 and
           ball_path[i].position.y >= robot_path[i].position.y and
           robot_path[i].position.y >= prev_max_height) {
