@@ -309,21 +309,23 @@ Target MyStrategy::calc_defend_spot() {
     target_position
   );
 
-  // for (const PosVelTime &ball_pvt : this->ball.projected_path) {
-  //   if (this->sim.goal_scored(ball_pvt.position.z))
-  //     break;
-  //   if (ball_pvt.time < BIG_EPS)
-  //     continue;
-  //
-  //   if (ball_pvt.position.z <= this->CRITICAL_BORDER) {
-  //     target_position.x = ball_pvt.position.x;
-  //     Vec2D delta_pos = target_position - this->me->position.drop();
-  //     double need_speed = delta_pos.len() / ball_pvt.time;
-  //     target_velocity = delta_pos.normalize() * need_speed;
-  //     // target_velocity = delta_pos.normalize() * this->RULES.ROBOT_MAX_GROUND_SPEED;
-  //     return {true, target_position, target_velocity, ball_pvt.time};
-  //   }
-  // }
+  auto [i_exists, i_position, i_time] = this->me->first_ball_intercept;
+  if (i_exists and not this->can_enemies_intercept_earlier(i_time)) {
+    for (const PosVelTime &ball_pvt : this->ball.projected_path) {
+      if (this->sim.goal_scored(ball_pvt.position.z))
+        break;
+      if (ball_pvt.time < BIG_EPS)
+        continue;
+      if (ball_pvt.position.z <= this->CRITICAL_BORDER) {
+        target_position.x = ball_pvt.position.x;
+        Vec2D delta_pos = target_position - this->me->position.drop();
+        double need_speed = delta_pos.len() / ball_pvt.time;
+        target_velocity = delta_pos.normalize() * need_speed;
+        // target_velocity = delta_pos.normalize() * this->RULES.ROBOT_MAX_GROUND_SPEED;
+        return {true, target_position, target_velocity, ball_pvt.time};
+      }
+    }
+  }
 
   return {true, target_position, target_velocity, needed_time};
 }
