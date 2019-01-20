@@ -263,14 +263,25 @@ Target MyStrategy::calc_intercept_spot(
     if (ball_pvt.time < BIG_EPS)
       continue;
 
-    target_position.x = ball_pvt.position.x;
-    if (to_shift_x) {
-      if (target_position.x < -this->GOAL_EDGE)
-        target_position.x -= this->RULES.ROBOT_RADIUS;
-      else if (target_position.x > this->GOAL_EDGE)
-        target_position.x += this->RULES.ROBOT_RADIUS;
+    auto [direct_target, scoring_targets] =
+      this->calc_reachable_targets_from(
+        this->me->strip(),
+        this->ball.strip(),
+        NUM_RAYS
+      );
+
+    if (not scoring_targets.empty())
+      target_position = scoring_targets[int(scoring_targets.size())/2];
+    else {
+      target_position.x = ball_pvt.position.x;
+      if (to_shift_x) {
+       if (target_position.x < -this->GOAL_EDGE)
+         target_position.x -= this->RULES.ROBOT_RADIUS;
+       else if (target_position.x > this->GOAL_EDGE)
+         target_position.x += this->RULES.ROBOT_RADIUS;
+      }
+      target_position.z = ball_pvt.position.z - z_offset;
     }
-    target_position.z = ball_pvt.position.z - z_offset;
 
     // if I'm farther than the target..
     if (this->me->position.z > target_position.z)
@@ -398,6 +409,96 @@ Target MyStrategy::calc_follow_spot(const double &z_offset) {
   return {true, target_position, target_velocity, needed_time};
 }
 
+
+std::tuple<Vec2D&, std::vector<Vec2D>&> MyStrategy::calc_reachable_targets_from(
+    const PosVelTime &robot_pvt,
+    const PosVelTime &ball_pvt,
+    const int &num_rays) {
+
+  Vec2D direct_target = geom::offset_to(
+      ball_pvt.position.drop(),
+      robot_pvt.position.drop(),
+      3 - BIG_EPS);
+  std::vector<Vec2D> scoring_targets;
+
+  // draw_targets
+  // this->renderer.draw_sphere(
+  //   Vec3D(direct_target, ball_pvt.position.y), 1, BLACK, 1);
+
+  std::vector<Vec2D> tangents =
+    geom::get_tangents_to_circle(
+      ball_pvt.position.drop(),
+      this->RULES.BALL_RADIUS + this->RULES.ROBOT_RADIUS - BIG_EPS,
+      robot_pvt.position.drop()
+    );
+
+  std::vector<Vec2D> edges;
+  if (int(tangents.size()) == 0)
+    return std::forward_as_tuple(direct_target, scoring_targets);
+  else if (int(tangents.size()) == 1)
+    edges = tangents;
+  else if (int(tangents.size()) == 2) {
+    Vec2D dir_tangents = tangents[1] - tangents[0];
+    for (int raw = 0; raw <= num_rays; ++raw) {
+      Vec2D in_point = tangents[0] + dir_tangents * (1.0*raw/num_rays);
+      Vec2D edge = geom::get_segment_circle_intersection(
+        ball_pvt.position.drop(),
+        this->RULES.BALL_RADIUS + this->RULES.ROBOT_RADIUS - BIG_EPS,
+        in_point,
+        robot_pvt.position.drop());
+      edges.push_back(edge);
+    }
+  } else
+    assert(false);        // shouldn't happen
+
+
+  for (const Vec2D &edge : edges) {
+    EntityLite r_dummy = this->me->lighten();
+    r_dummy.position = Vec3D(edge, ball_pvt.position.y);
+    r_dummy.velocity = Vec3D(edge - robot_pvt.position.drop(), 0) *
+                       this->RULES.ROBOT_MAX_GROUND_SPEED;
+    r_dummy.velocity.clamp(this->RULES.ROBOT_MAX_GROUND_SPEED);
+    EntityLite b_dummy = this->ball.lighten();
+    b_dummy.position = ball_pvt.position;
+    b_dummy.velocity = ball_pvt.velocity;
+
+    bool has_collided = this->sim.collide_entities(r_dummy, b_dummy);
+    auto [can_score, intersection] = geom::ray_segment_intersection(
+      b_dummy.position.drop(),
+      b_dummy.velocity.drop(),
+      Vec2D(-this->GOAL_EDGE, this->ARENA.depth/2.0),
+      Vec2D( this->GOAL_EDGE, this->ARENA.depth/2.0));
+
+    assert(has_collided);
+    if (can_score)
+      scoring_targets.push_back(edge);
+
+    if (VERBOSITY == 1) {
+      this->renderer.draw_sphere(
+        r_dummy.position,
+        1.0,
+        (can_score ? VIOLET : TEAL),
+        0.5
+      );
+      this->renderer.draw_line(
+        r_dummy.position,
+        this->me->position,
+        1.0,
+        (can_score ? VIOLET : TEAL),
+        0.5
+      );
+      this->renderer.draw_line(
+        b_dummy.position,
+        Vec3D(intersection, 0.0),
+        1.0,
+        (can_score ? VIOLET : TEAL),
+        0.5
+      );
+    }
+  }
+
+  return std::forward_as_tuple(direct_target, scoring_targets);
+}
 
 bool MyStrategy::is_duplicate_target(
     const Vec2D &position,

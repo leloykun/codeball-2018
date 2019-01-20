@@ -186,4 +186,5 @@ std::tuple<bool, Vec3D, double> Simulation::calc_ball_intercept(
   return {false, Vec3D(), INF};
 }
 
+
 #endif

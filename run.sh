@@ -9,7 +9,7 @@ SOURCE_2=${2:-versions/MyStrategy_v40}
 
 codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p2-name PREV-STRAT \
   --p2 tcp-31002 --results-file res.txt --duration 7200 --no-countdown \
-  --nitro true --noshow &
+  --nitro true &
 # codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p2-name EMPTY --p2 empty --results-file res.txt --duration 7200 --no-countdown &
 # codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p2-name HELPER --p2 helper --results-file res.txt --duration 7200 --no-countdown &
 sleep 1; cpp-cgdk/$SOURCE_1 &
