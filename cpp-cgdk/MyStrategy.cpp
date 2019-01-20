@@ -195,10 +195,13 @@ Role MyStrategy::calc_role() {
         this->robots[id].position.z < this->me->position.z)
       role = ATTACKER;
 
+  auto [en_can_intercept, en_time, en_id] =
+    this->can_enemies_intercept_earlier(t_attack_aggro.needed_time);
+
   if (role == GOALKEEPER and
       this->t_attack_aggro.exists and
       this->t_attack_aggro.position.z <= this->DEFENSE_BORDER and
-      not this->can_enemies_intercept_earlier(t_attack_aggro.needed_time)) {
+      not en_can_intercept) {
     role = AGGRESSIVE_DEFENDER;
   }
 
@@ -314,7 +317,17 @@ Target MyStrategy::calc_defend_spot() {
   );
 
   auto [i_exists, i_position, i_time] = this->me->first_ball_intercept;
-  if (i_exists and not this->can_enemies_intercept_earlier(i_time)) {
+  auto [en_can_intercept, en_time, en_id] =
+    this->can_enemies_intercept_earlier(i_time);
+  auto [en_locked, en_lock_position] =
+    geom::ray_circle_first_intersection(
+      this->robots[en_id].position.drop(),
+      this->robots[en_id].velocity.drop(),
+      this->ball.position.drop(),
+      this->RULES.ROBOT_RADIUS + this->RULES.BALL_RADIUS - BIG_EPS
+    );
+
+  if (i_exists and not en_can_intercept) {
     for (const PosVelTime &ball_pvt : this->ball.projected_path) {
       if (this->sim.goal_scored(ball_pvt.position.z))
         break;
@@ -324,13 +337,41 @@ Target MyStrategy::calc_defend_spot() {
         target_position.x = ball_pvt.position.x;
         Vec2D delta_pos = target_position - this->me->position.drop();
         double need_speed = delta_pos.len() / ball_pvt.time;
-        need_speed = clamp(need_speed,
-                           0.5*this->RULES.ROBOT_MAX_GROUND_SPEED,
-                           this->RULES.ROBOT_MAX_GROUND_SPEED);
+        // need_speed = clamp(need_speed,
+        //                    0.5*this->RULES.ROBOT_MAX_GROUND_SPEED,
+        //                    this->RULES.ROBOT_MAX_GROUND_SPEED);
         target_velocity = delta_pos.normalize() * need_speed;
         // target_velocity = delta_pos.normalize() * this->RULES.ROBOT_MAX_GROUND_SPEED;
         return {true, target_position, target_velocity, ball_pvt.time};
       }
+    }
+  } else if (en_can_intercept and en_locked) {
+    EntityLite r_dummy = this->robots[en_id].lighten();
+    r_dummy.position = Vec3D(en_lock_position, this->ball.position.y);
+    r_dummy.velocity = Vec3D(en_lock_position - this->robots[en_id].position.drop(), 0).normalize() *
+                       this->RULES.ROBOT_MAX_GROUND_SPEED;
+    EntityLite b_dummy = this->ball.lighten();
+
+    bool has_collided = this->sim.collide_entities(r_dummy, b_dummy);
+    auto [en_can_score, intersection] = geom::ray_segment_intersection(
+      b_dummy.position.drop(),
+      b_dummy.velocity.drop(),
+      Vec2D(-this->GOAL_EDGE, -this->ARENA.depth/2.0),
+      Vec2D( this->GOAL_EDGE, -this->ARENA.depth/2.0));
+
+    assert(has_collided);
+    if (en_can_score) {
+      target_position = en_lock_position;
+      Vec2D delta_pos = target_position - this->me->position.drop();
+      double need_speed = this->RULES.ROBOT_MAX_GROUND_SPEED;
+      double needed_time =
+        geom::time_to_go_to(
+          this->me->position.drop(),
+          this->me->velocity.drop(),
+          target_position
+        );
+      target_velocity = delta_pos.normalize() * need_speed;
+      return {true, target_position, target_velocity, needed_time};
     }
   }
 
@@ -525,13 +566,20 @@ bool MyStrategy::is_duplicate_target(
   return false;
 }
 
-bool MyStrategy::can_enemies_intercept_earlier(const double &until) {
+std::tuple<bool, double, int> MyStrategy::can_enemies_intercept_earlier(
+    const double &until) {
+  double min_time = INF;
+  int min_id = -1;
   for (int id : this->enemy_ids) {
     auto [exists, position, time] = this->robots[id].first_ball_intercept;
-    if (exists and time < until)
-      return true;
+    if (exists and time < until) {
+      min_time = std::min(min_time, time);
+      min_id = id;
+    }
   }
-  return false;
+  if (min_time < until)
+    return {true, min_time, min_id};
+  return {false, min_time, min_id};
 }
 
 double MyStrategy::calc_jump_speed(const double &acceptable_jump_dist) {
