@@ -27,11 +27,6 @@ void MyStrategy::act(
 
   this->me->role = this->calc_role();
 
-  // ATTACKER,
-  // AGGRESSIVE_DEFENDER,
-  // GOALKEEPER,
-  // BLOCKER,
-  // FOLLOWER
   Vec2D target_position;
   Vec2D target_velocity;
 
