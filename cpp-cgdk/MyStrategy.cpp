@@ -23,8 +23,6 @@ void MyStrategy::act(
 
   this->init_query(me.id, game);
 
-  this->run_simulation(game);
-
   this->calc_targets();
 
   this->me->role = this->calc_role();
@@ -116,17 +114,14 @@ void MyStrategy::init_tick(const model::Game &game) {
   assert(this->initialized);
   this->current_tick = game.current_tick;
 
+  this->run_simulation(game);
+
   if (VERBOSITY == 1 and this->current_tick % 100 == 0)
       std::cout << this->current_tick << "\n";
   else if (VERBOSITY == 2) {
     std::cout << "----------------------\n";
     std::cout << "current tick: "<<this->current_tick<<"\n";
   }
-
-  this->sim.calc_ball_path(
-    this->ball,
-    SIMULATION_NUM_TICKS,
-    SIMULATION_PRECISION);
 
   this->renderer.clear();
 }
@@ -147,6 +142,10 @@ void MyStrategy::init_query(const int &me_id, const model::Game &game) {
 }
 
 void MyStrategy::run_simulation(const model::Game &game) {
+  this->sim.calc_ball_path(
+    this->ball,
+    SIMULATION_NUM_TICKS,
+    SIMULATION_PRECISION);
 
   for (int id : this->robot_ids)
     this->sim.calc_robot_path(
