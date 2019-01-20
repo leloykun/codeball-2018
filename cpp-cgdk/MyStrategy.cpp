@@ -211,13 +211,13 @@ Role MyStrategy::calc_role() {
   if (role == ATTACKER and
       this->t_attack.exists and
       not this->is_duplicate_target(this->t_attack.position,
-                                    4*this->RULES.BALL_RADIUS))
+                                    this->RULES.BALL_RADIUS))
     return ATTACKER;
 
   if (role == AGGRESSIVE_DEFENDER and
       this->t_attack_aggro.exists and
       not this->is_duplicate_target(this->t_attack_aggro.position,
-                                    4*this->RULES.BALL_RADIUS))
+                                    this->RULES.BALL_RADIUS))
     return AGGRESSIVE_DEFENDER;
 
   if (not this->is_duplicate_target(this->t_cross.position,
@@ -309,21 +309,22 @@ Target MyStrategy::calc_defend_spot() {
     target_position
   );
 
-  for (const PosVelTime &ball_pvt : this->ball.projected_path) {
-    if (this->sim.goal_scored(ball_pvt.position.z))
-      break;
-    if (ball_pvt.time < BIG_EPS)
-      continue;
+  // for (const PosVelTime &ball_pvt : this->ball.projected_path) {
+  //   if (this->sim.goal_scored(ball_pvt.position.z))
+  //     break;
+  //   if (ball_pvt.time < BIG_EPS)
+  //     continue;
+  //
+  //   if (ball_pvt.position.z <= this->CRITICAL_BORDER) {
+  //     target_position.x = ball_pvt.position.x;
+  //     Vec2D delta_pos = target_position - this->me->position.drop();
+  //     double need_speed = delta_pos.len() / ball_pvt.time;
+  //     target_velocity = delta_pos.normalize() * need_speed;
+  //     // target_velocity = delta_pos.normalize() * this->RULES.ROBOT_MAX_GROUND_SPEED;
+  //     return {true, target_position, target_velocity, ball_pvt.time};
+  //   }
+  // }
 
-    if (ball_pvt.position.z <= this->CRITICAL_BORDER) {
-      target_position.x = ball_pvt.position.x;
-      Vec2D delta_pos = target_position - this->me->position.drop();
-      double need_speed = delta_pos.len() / ball_pvt.time;
-      target_velocity = delta_pos.normalize() * need_speed;
-      // target_velocity = delta_pos.normalize() * this->RULES.ROBOT_MAX_GROUND_SPEED;
-      return {true, target_position, target_velocity, ball_pvt.time};
-    }
-  }
   return {true, target_position, target_velocity, needed_time};
 }
 
@@ -461,7 +462,7 @@ std::tuple<bool, Vec3D, Vec3D> MyStrategy::calc_valid_jump_intercept(
   for (int i = 0; i < std::min(int(robot_path.size()), int(ball_path.size())); ++i) {
     assert(std::fabs(robot_path[i].time - ball_path[i].time) < BIG_EPS);
     if ((ball_path[i].position - robot_path[i].position).len() <= this->RULES.BALL_RADIUS + this->RULES.ROBOT_RADIUS) {
-      if (// ball_path[i].position.z >= robot_position.z and //
+      if (ball_path[i].position.z >= robot_position.z and
           ball_path[i].position.z >= robot_path[i].position.z + 0.5 and
           ball_path[i].position.y >= robot_path[i].position.y and
           robot_path[i].position.y >= prev_max_height) {
