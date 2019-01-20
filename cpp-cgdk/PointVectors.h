@@ -50,6 +50,8 @@ inline Vec2D operator+(Vec2D lhs, const Vec2D &rhs) {
   lhs += rhs;  return lhs;  }
 inline Vec2D operator*(Vec2D lhs, const double num) {
   lhs *= num;  return lhs;  }
+inline Vec2D operator*(const double num, Vec2D rhs) {
+  rhs *= num;  return rhs;  }
 inline Vec2D operator/(Vec2D lhs, const double num) {
   lhs /= num;  return lhs;  }
 

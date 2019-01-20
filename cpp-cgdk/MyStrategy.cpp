@@ -70,7 +70,7 @@ void MyStrategy::act(
 void MyStrategy::init_strategy(
     const model::Rules &rules,
     const model::Game &game) {
-  if (VERBOSITY == 1)
+  if (VERBOSITY >= 1)
     std::cout << "START!\n";
 
   this->RULES = rules;
@@ -111,9 +111,9 @@ void MyStrategy::init_tick(const model::Game &game) {
 
   this->run_simulation(game);
 
-  if (VERBOSITY == 1 and this->current_tick % 100 == 0)
+  if (VERBOSITY >= 1 and this->current_tick % 100 == 0)
       std::cout << this->current_tick << "\n";
-  else if (VERBOSITY == 2) {
+  else if (VERBOSITY >= 2) {
     std::cout << "----------------------\n";
     std::cout << "current tick: "<<this->current_tick<<"\n";
   }
@@ -151,7 +151,7 @@ void MyStrategy::run_simulation(const model::Game &game) {
       BY_TICK,
       0);
 
-  for (int id : this->ally_ids)
+  for (int id : this->robot_ids)
     this->sim.calc_robot_path(
       this->robots[id],
       this->robots[id].projected_path,
@@ -324,6 +324,9 @@ Target MyStrategy::calc_defend_spot() {
         target_position.x = ball_pvt.position.x;
         Vec2D delta_pos = target_position - this->me->position.drop();
         double need_speed = delta_pos.len() / ball_pvt.time;
+        need_speed = clamp(need_speed,
+                           0.5*this->RULES.ROBOT_MAX_GROUND_SPEED,
+                           this->RULES.ROBOT_MAX_GROUND_SPEED);
         target_velocity = delta_pos.normalize() * need_speed;
         // target_velocity = delta_pos.normalize() * this->RULES.ROBOT_MAX_GROUND_SPEED;
         return {true, target_position, target_velocity, ball_pvt.time};
@@ -354,7 +357,7 @@ Target MyStrategy::calc_block_spot(const double &offset) {
   if (nearest_id == -1)
     return {false, Vec2D(), Vec2D()};
 
-  if (VERBOSITY == 1)
+  if (VERBOSITY >= 1)
     this->renderer.draw_sphere(Vec3D(en_attack_pos, 0.0), 1, VIOLET, 1);
 
   Vec2D target_position = geom::offset_to(
@@ -389,7 +392,7 @@ Target MyStrategy::calc_follow_spot(const double &z_offset) {
   else
     target_position = this->ball.bounce_positions[0].drop();
 
-  if (VERBOSITY == 1)
+  if (VERBOSITY >= 1)
     this->renderer.draw_sphere(Vec3D(target_position, 0.0), 1, WHITE, 1);
 
   if (target_position.x < -this->GOAL_EDGE)
@@ -472,7 +475,7 @@ std::tuple<Vec2D&, std::vector<Vec2D>&> MyStrategy::calc_reachable_targets_from(
     if (can_score)
       scoring_targets.push_back(edge);
 
-    if (VERBOSITY == 1) {
+    if (VERBOSITY >= 1) {
       this->renderer.draw_sphere(
         r_dummy.position,
         1.0,
@@ -574,7 +577,7 @@ std::tuple<bool, Vec3D, Vec3D> MyStrategy::calc_valid_jump_intercept(
 
 
 std::string MyStrategy::custom_rendering() {
-  if (VERBOSITY == 1) {
+  if (VERBOSITY >= 1) {
     // draw borders
     this->renderer.draw_border(this->DEFENSE_BORDER);
     this->renderer.draw_border(this->CRITICAL_BORDER);
@@ -626,6 +629,13 @@ std::string MyStrategy::custom_rendering() {
         1.0,
         ColorMap[this->robots[id].role],
         0.5);
+      this->renderer.draw_line(
+        hover,
+        this->robots[id].target_position,
+        10,
+        ColorMap[this->robots[id].role],
+        0.5
+      );
     }
 
     for (int id : this->robot_ids) {
@@ -642,16 +652,42 @@ std::string MyStrategy::custom_rendering() {
           0.5);
     }
 
-    std::cout<<this->t_attack_aggro.needed_time<<"\n";
-    for (int id : this->robot_ids) {
-      auto [exists, target, time] = this->robots[id].first_ball_intercept;
-      if (exists)
+    // if (VERBOSITY >= 2)
+    //   std::cout<<this->t_attack_aggro.needed_time<<"\n";
+    // for (int id : this->robot_ids) {
+    //   auto [exists, target, time] = this->robots[id].first_ball_intercept;
+    //   if (exists)
+    //     this->renderer.draw_sphere(
+    //       target,
+    //       2.5,
+    //       VIOLET,
+    //       0.5);
+    //   if (VERBOSITY >= 2)
+    //     std::cout<<id<<" "<<time<<"\n";
+    // }
+    for (int id : this->enemy_ids) {
+      auto [exists, position] =
+        geom::ray_circle_first_intersection(
+          this->robots[id].position.drop(),
+          this->robots[id].velocity.drop(),
+          this->ball.position.drop(),
+          this->RULES.ROBOT_RADIUS + this->RULES.BALL_RADIUS
+        );
+      if (exists) {
         this->renderer.draw_sphere(
-          target,
-          2.5,
+          Vec3D(position, this->ball.position.y),
+          1.0,
           VIOLET,
-          0.5);
-      std::cout<<id<<" "<<time<<"\n";
+          1.0
+        );
+        this->renderer.draw_line(
+          this->robots[id].position,
+          Vec3D(position, this->ball.position.y),
+          10,
+          VIOLET,
+          1.0
+        );
+      }
     }
   }
 
