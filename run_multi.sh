@@ -1,7 +1,6 @@
 SECONDS=0
 
 rm -- codeball2018-linux/result*.txt
-rm -- codeball2018-linux/game*.log
 
 NUM_CORES=8
 
@@ -25,7 +24,7 @@ for ((batch = 0; batch < $BATCHES; batch++)) do
         --p1-name V$VERSION_P1 --p1 tcp-$port_1 \
         --p2-name V$VERSION_P2 --p2 tcp-$port_2 \
         --results-file result_$game.txt --no-countdown \
-        --noshow --log-file game_$game.log --nitro true &
+        --noshow --nitro true &
       sleep 0.5; cpp-cgdk/versions/MyStrategy_v$VERSION_P1 127.0.0.1 $port_1 $a &
       sleep 0.5; cpp-cgdk/versions/MyStrategy_v$VERSION_P2 127.0.0.1 $port_2 $b &
       # '

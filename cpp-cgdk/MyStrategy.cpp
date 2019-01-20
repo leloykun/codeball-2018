@@ -263,25 +263,24 @@ Target MyStrategy::calc_intercept_spot(
     if (ball_pvt.time < BIG_EPS)
       continue;
 
-    auto [direct_target, scoring_targets] =
-      this->calc_reachable_targets_from(
-        this->me->strip(),
-        this->ball.strip(),
-        NUM_RAYS
-      );
-
-    if (not scoring_targets.empty())
-      target_position = scoring_targets[int(scoring_targets.size())/2];
-    else {
-      target_position.x = ball_pvt.position.x;
-      if (to_shift_x) {
-       if (target_position.x < -this->GOAL_EDGE)
-         target_position.x -= this->RULES.ROBOT_RADIUS;
-       else if (target_position.x > this->GOAL_EDGE)
-         target_position.x += this->RULES.ROBOT_RADIUS;
-      }
-      target_position.z = ball_pvt.position.z - z_offset;
+    // auto [direct_target, scoring_targets] =
+    //   this->calc_reachable_targets_from(
+    //     this->me->strip(),
+    //     this->ball.strip(),
+    //     NUM_RAYS
+    //   );
+    // if (not scoring_targets.empty())
+    //   target_position = scoring_targets[int(scoring_targets.size())/2];
+    // else {
+    target_position.x = ball_pvt.position.x;
+    if (to_shift_x) {
+     if (target_position.x < -this->GOAL_EDGE)
+       target_position.x -= this->RULES.ROBOT_RADIUS;
+     else if (target_position.x > this->GOAL_EDGE)
+       target_position.x += this->RULES.ROBOT_RADIUS;
     }
+    target_position.z = ball_pvt.position.z - z_offset;
+    // }
 
     // if I'm farther than the target..
     if (this->me->position.z > target_position.z)
@@ -409,7 +408,7 @@ Target MyStrategy::calc_follow_spot(const double &z_offset) {
   return {true, target_position, target_velocity, needed_time};
 }
 
-
+/*
 std::tuple<Vec2D&, std::vector<Vec2D>&> MyStrategy::calc_reachable_targets_from(
     const PosVelTime &robot_pvt,
     const PosVelTime &ball_pvt,
@@ -499,6 +498,7 @@ std::tuple<Vec2D&, std::vector<Vec2D>&> MyStrategy::calc_reachable_targets_from(
 
   return std::forward_as_tuple(direct_target, scoring_targets);
 }
+*/
 
 bool MyStrategy::is_duplicate_target(
     const Vec2D &position,

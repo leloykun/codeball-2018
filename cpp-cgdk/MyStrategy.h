@@ -101,10 +101,10 @@ public:
   Target calc_block_spot(const double &offset);
   Target calc_follow_spot(const double &z_offset);
 
-  std::tuple<Vec2D&, std::vector<Vec2D>& > calc_reachable_targets_from(
-      const PosVelTime &robot_pvt,
-      const PosVelTime &ball_pvt,
-      const int &num_rays);
+  // std::tuple<Vec2D&, std::vector<Vec2D>& > calc_reachable_targets_from(
+  //     const PosVelTime &robot_pvt,
+  //     const PosVelTime &ball_pvt,
+  //     const int &num_rays);
   bool is_duplicate_target(
       const Vec2D &position,
       const double &acceptable_delta);
