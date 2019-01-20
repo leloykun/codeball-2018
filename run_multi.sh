@@ -3,7 +3,7 @@ SECONDS=0
 rm -- codeball2018-linux/result*.txt
 rm -- codeball2018-linux/game*.log
 
-NUM_CORES=4
+NUM_CORES=8
 
 BATCHES=${1:-1}
 DURATION=${2:-18000}
