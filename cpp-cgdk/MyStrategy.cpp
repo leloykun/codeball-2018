@@ -197,7 +197,7 @@ Role MyStrategy::calc_role() {
 
   if (role == GOALKEEPER and
       this->t_attack_aggro.exists and
-      // this->t_attack_aggro.position.z <= this->ZONE_BORDER and
+      this->t_attack_aggro.position.z <= this->ZONE_BORDER and
       not this->can_enemies_intercept_earlier(t_attack_aggro.needed_time)) {
     role = AGGRESSIVE_DEFENDER;
   }
@@ -294,7 +294,7 @@ Target MyStrategy::calc_defend_spot() {
     clamp(this->ball.position.x,
           -(this->ARENA.goal_width/2.0-2*this->ARENA.bottom_radius),
           this->ARENA.goal_width/2.0-2*this->ARENA.bottom_radius),
-    -this->ARENA.depth/2.0+(0.1)*this->ball.position.z);
+    -this->ARENA.depth/2.0+std::min(0.0, (0.2)*this->ball.position.z));
   Vec2D target_velocity = (target_position - this->me->position.drop()) *
                           this->RULES.ROBOT_MAX_GROUND_SPEED;
   double needed_time = geom::time_to_go_to(
@@ -487,7 +487,9 @@ std::string MyStrategy::custom_rendering() {
       0.5);
     this->renderer.draw_sphere(Vec3D(this->GOAL_LIM_LEFT, 1.0), 1, RED, 1);
     this->renderer.draw_sphere(Vec3D(this->GOAL_LIM_RIGHT, 1.0), 1, RED, 1);
+  }
 
+  if (VERBOSITY == 1) {
     // // draw supersized ball
     // this->renderer.draw_sphere(this->ball.position, 3, WHITE, 0.1);
 
@@ -510,7 +512,6 @@ std::string MyStrategy::custom_rendering() {
 
     for (auto &[id, robot] : this->robots)
       this->renderer.draw_path(robot.projected_path, 0.5, TEAL, 0.5, false);
-
 
     for (int id : this->ally_ids) {
       Vec3D hover = this->robots[id].position;
