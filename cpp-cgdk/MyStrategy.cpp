@@ -70,7 +70,7 @@ void MyStrategy::act(
 void MyStrategy::init_strategy(
     const model::Rules &rules,
     const model::Game &game) {
-  if (VERBOSITY >= 1)
+  if (VERBOSITY == 1)
     std::cout << "START!\n";
 
   this->RULES = rules;
@@ -111,9 +111,9 @@ void MyStrategy::init_tick(const model::Game &game) {
 
   this->run_simulation(game);
 
-  if (VERBOSITY >= 1 and this->current_tick % 100 == 0)
+  if (VERBOSITY == 1 and this->current_tick % 100 == 0)
       std::cout << this->current_tick << "\n";
-  else if (VERBOSITY >= 2) {
+  else if (VERBOSITY == 2) {
     std::cout << "----------------------\n";
     std::cout << "current tick: "<<this->current_tick<<"\n";
   }
@@ -151,7 +151,7 @@ void MyStrategy::run_simulation(const model::Game &game) {
       BY_TICK,
       0);
 
-  for (int id : this->robot_ids)
+  for (int id : this->ally_ids)
     this->sim.calc_robot_path(
       this->robots[id],
       this->robots[id].projected_path,
@@ -198,16 +198,21 @@ Role MyStrategy::calc_role() {
   if (role == GOALKEEPER and
       this->t_attack_aggro.exists and
       this->t_attack_aggro.position.z <= this->DEFENSE_BORDER and
-      not this->can_enemies_intercept_earlier(t_attack_aggro.needed_time) and
-      not this->is_duplicate_target(this->t_attack_aggro.position,
-                                    this->RULES.BALL_RADIUS))
+      not this->can_enemies_intercept_earlier(t_attack_aggro.needed_time)) {
     role = AGGRESSIVE_DEFENDER;
+  }
 
   if (role == ATTACKER and
       this->t_attack.exists and
       not this->is_duplicate_target(this->t_attack.position,
                                     this->RULES.BALL_RADIUS))
     return ATTACKER;
+
+  if (role == AGGRESSIVE_DEFENDER and
+      this->t_attack_aggro.exists and
+      not this->is_duplicate_target(this->t_attack_aggro.position,
+                                    this->RULES.BALL_RADIUS))
+    return AGGRESSIVE_DEFENDER;
 
   if (not this->is_duplicate_target(this->t_cross.position,
                                     this->RULES.BALL_RADIUS))
@@ -468,7 +473,7 @@ std::tuple<bool, Vec3D, Vec3D> MyStrategy::calc_valid_jump_intercept(
 
 
 std::string MyStrategy::custom_rendering() {
-  if (VERBOSITY >= 1) {
+  if (VERBOSITY == 1) {
     // draw borders
     this->renderer.draw_border(this->DEFENSE_BORDER);
     this->renderer.draw_border(this->CRITICAL_BORDER);
@@ -536,9 +541,7 @@ std::string MyStrategy::custom_rendering() {
           0.5);
     }
 
-    if (VERBOSITY >= 2)
-      std::cout<<this->t_attack_aggro.needed_time<<"\n";
-
+    std::cout<<this->t_attack_aggro.needed_time<<"\n";
     for (int id : this->robot_ids) {
       auto [exists, target, time] = this->robots[id].first_ball_intercept;
       if (exists)
@@ -547,8 +550,7 @@ std::string MyStrategy::custom_rendering() {
           2.5,
           VIOLET,
           0.5);
-      if (VERBOSITY >= 2)
-        std::cout<<id<<" "<<time<<"\n";
+      std::cout<<id<<" "<<time<<"\n";
     }
   }
 
