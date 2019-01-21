@@ -195,20 +195,21 @@ Role MyStrategy::calc_role() {
         this->robots[id].position.z < this->me->position.z)
       role = ATTACKER;
 
-  auto [en_can_intercept, en_time, en_id] =
-    this->can_enemies_intercept_earlier(t_attack_aggro.needed_time);
+  auto [en_intercept_exists, intercept_ball_pos, en_id] =
+    this->calc_enemy_first_intercept(t_attack_aggro.needed_time);
 
   if (role == GOALKEEPER and
       this->t_attack_aggro.exists and
       this->t_attack_aggro.position.z <= this->DEFENSE_BORDER and
-      not en_can_intercept) {
+      not en_intercept_exists) {
     role = AGGRESSIVE_DEFENDER;
   }
 
   if (role == ATTACKER and
       this->t_attack.exists and
       not this->is_duplicate_target(this->t_attack.position,
-                                    this->RULES.BALL_RADIUS))
+                                    this->RULES.BALL_RADIUS) and
+      not en_intercept_exists)
     return ATTACKER;
 
   if (role == AGGRESSIVE_DEFENDER and
@@ -316,9 +317,10 @@ Target MyStrategy::calc_defend_spot() {
     target_position
   );
 
-  auto [i_exists, i_position, i_time] = this->me->first_ball_intercept;
-  auto [en_can_intercept, en_time, en_id] =
-    this->can_enemies_intercept_earlier(i_time);
+  auto [me_intercept_exists, i_position, i_time] =
+    this->me->first_ball_intercept;
+  auto [en_intercept_exists, en_intercept_ball_pos, en_id] =
+    this->calc_enemy_first_intercept(i_time);
   auto [en_locked, en_lock_position] =
     geom::ray_circle_first_intersection(
       this->robots[en_id].position.drop(),
@@ -327,7 +329,7 @@ Target MyStrategy::calc_defend_spot() {
       this->RULES.ROBOT_RADIUS + this->RULES.BALL_RADIUS - BIG_EPS
     );
 
-  if (i_exists and not en_can_intercept) {
+  if (me_intercept_exists and not en_intercept_exists) {
     for (const PosVelTime &ball_pvt : this->ball.projected_path) {
       if (this->sim.goal_scored(ball_pvt.position.z))
         break;
@@ -345,7 +347,7 @@ Target MyStrategy::calc_defend_spot() {
         return {true, target_position, target_velocity, ball_pvt.time};
       }
     }
-  } /* else if (en_can_intercept and en_locked) {
+  } /* else if (en_intercept_exists and en_locked) {
     EntityLite r_dummy = this->robots[en_id].lighten();
     r_dummy.position = Vec3D(en_lock_position, this->ball.position.y);
     r_dummy.velocity = Vec3D(en_lock_position - this->robots[en_id].position.drop(), 0).normalize() *
@@ -566,20 +568,22 @@ bool MyStrategy::is_duplicate_target(
   return false;
 }
 
-std::tuple<bool, double, int> MyStrategy::can_enemies_intercept_earlier(
+std::tuple<bool, Vec3D, int> MyStrategy::calc_enemy_first_intercept(
     const double &until) {
-  double min_time = INF;
-  int min_id = -1;
+  double intercept_time = INF;
+  Vec3D intercept_pos;
+  int intercept_id = -1;
   for (int id : this->enemy_ids) {
     auto [exists, position, time] = this->robots[id].first_ball_intercept;
-    if (exists and time < until) {
-      min_time = std::min(min_time, time);
-      min_id = id;
+    if (exists and time < until and time < intercept_time) {
+      intercept_time = time;
+      intercept_pos = position;
+      intercept_id = id;
     }
   }
-  if (min_time < until)
-    return {true, min_time, min_id};
-  return {false, min_time, min_id};
+  if (intercept_time < until)
+    return {true, intercept_pos, intercept_id};
+  return {false, intercept_pos, intercept_id};
 }
 
 double MyStrategy::calc_jump_speed(const double &acceptable_jump_dist) {

@@ -108,7 +108,7 @@ public:
   bool is_duplicate_target(
       const Vec2D &position,
       const double &acceptable_delta);
-  std::tuple<bool, double, int> can_enemies_intercept_earlier(
+  std::tuple<bool, Vec3D, int> calc_enemy_first_intercept(
       const double &until);
 
   double calc_jump_speed(const double &acceptable_jump_dist);

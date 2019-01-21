@@ -31,6 +31,9 @@ struct Vec2D {
   std::string str() const {
     return "("+std::to_string(x)+","+
                std::to_string(z)+")"; }
+  Vec2D& operator=(Vec2D rhs) {
+    std::swap(*this, rhs);
+    return *this;  }
   Vec2D& operator-=(const Vec2D &other) {
     this->x -= other.x;  this->z -= other.z;
     return *this;  }
@@ -83,6 +86,9 @@ struct Vec3D {
     return "("+std::to_string(x)+","+
                std::to_string(z)+","+
                std::to_string(y)+")"; }
+  Vec3D& operator=(Vec3D rhs) {
+    std::swap(*this, rhs);
+    return *this;  }
   Vec3D& operator-=(const Vec3D &other) {
     this->x -= other.x;  this->z -= other.z;  this->y -= other.y;
     return *this;  }
