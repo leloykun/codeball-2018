@@ -76,30 +76,6 @@ namespace geom {
     return in_point + dir_norm * d_ans;
   }
 
-  std::tuple<bool, Vec2D> ray_circle_first_intersection(
-      const Vec2D &origin,
-      const Vec2D &dir,
-      const Vec2D &c_center,
-      const double &radius) {
-    Vec2D L = c_center - origin;
-    Vec2D D = dir.normalize();
-    double t_ca = L.dot(D);
-    if (t_ca < -EPS)
-      return {false, Vec2D()};
-
-    double d = std::sqrt(L.len_sqr() - t_ca*t_ca);
-    if (d > radius)
-      return {false, Vec2D()};
-    double t_hc = std::sqrt(radius*radius - d*d);
-    double t_0 = t_ca - t_hc;
-    double t_1 = t_ca + t_hc;
-    if (t_0 > 0)
-      return {true, origin + t_0*D};
-    if (t_1 > 0)
-      return {true, origin + t_1*D};
-    return {false, Vec2D()};
-  }
-
   std::tuple<bool, Vec2D> ray_segment_intersection(
       const Vec2D &origin,
       const Vec2D &dir,

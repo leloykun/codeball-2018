@@ -81,8 +81,7 @@ struct Simulation {
   std::tuple<bool, Vec3D, double> calc_ball_intercept(
       const Entity &robot,
       const Entity &ball,
-      const double &height_lim,
-      const bool &with_change_direction=true,
+      const double &reachable_height,
       const double &time_lim=INF);
 
   // ----------- Found in: SimUtils.cpp ---------------

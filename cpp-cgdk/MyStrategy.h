@@ -21,7 +21,7 @@
 const int VERBOSITY = 0;
 const int SIMULATION_NUM_TICKS = 240;
 const double SIMULATION_PRECISION = 1/60.0;
-const int NUM_RAYS = 10;
+const int NUM_RAYS = 20;
 
 struct Target {
   bool exists;
@@ -101,16 +101,10 @@ public:
   Target calc_block_spot(const double &offset);
   Target calc_follow_spot(const double &z_offset);
 
-  // std::tuple<Vec2D&, std::vector<Vec2D>& > calc_reachable_targets_from(
-  //     const PosVelTime &robot_pvt,
-  //     const PosVelTime &ball_pvt,
-  //     const int &num_rays);
   bool is_duplicate_target(
       const Vec2D &position,
       const double &acceptable_delta);
-  std::tuple<bool, Vec3D, int> calc_enemy_first_intercept(
-      const double &until);
-  std::tuple<bool, Vec2D, int> calc_enemy_first_lock();
+  bool can_enemies_intercept_earlier(const double &until);
 
   double calc_jump_speed(const double &acceptable_jump_dist);
   std::tuple<bool, Vec3D, Vec3D> calc_valid_jump_intercept(
@@ -118,6 +112,12 @@ public:
       const Path &ball_path,
       const Vec3D &robot_position);
 
+  /*
+  std::tuple<Vec2D&, std::vector<Vec2D>& > calc_targets_from(
+      const PosVelTime &robot_pvt,
+      const PosVelTime &ball_pvt,
+      const int &num_rays);
+  */
   std::string custom_rendering() override;
 };
 

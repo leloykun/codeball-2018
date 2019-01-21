@@ -144,11 +144,11 @@ std::tuple<bool, Vec3D, double> Simulation::calc_ball_intercept(
     const Entity &robot,
     const Entity &ball,
     const double &height_lim,
-    const bool &with_change_direction,
     const double &time_lim) {
+  double init_time = 0.0;
+  Vec2D from_position = robot.position.drop();
   if (not robot.touch) {
-    int N = std::min(int(robot.projected_jump_path.size()),
-                     int(ball.projected_path.size()));
+    int N = std::min(int(robot.projected_jump_path.size()), int(ball.projected_path.size()));
     for (int i = 0; i < N; ++i) {
       auto robot_pvt = robot.projected_jump_path[i];
       auto ball_pvt = ball.projected_path[i];
@@ -159,64 +159,30 @@ std::tuple<bool, Vec3D, double> Simulation::calc_ball_intercept(
           this->rules.BALL_RADIUS + this->rules.ROBOT_RADIUS)
         return {true, ball_pvt.position, robot_pvt.time};
     }
+
+    init_time = robot.projected_jump_path.back().time;
+    from_position = robot.projected_jump_path.back().position.drop();
   }
 
-  if (with_change_direction) {
-    double init_time = 0.0;
-    Vec2D from_position = robot.position.drop();
-    if (not robot.touch) {
-      init_time = robot.projected_jump_path.back().time;
-      from_position = robot.projected_jump_path.back().position.drop();
-    }
+  for (auto &ball_pvt : ball.projected_path) {
+    if (this->goal_scored(ball_pvt.position.z))
+      break;
+    if (ball_pvt.time > time_lim)
+      break;
+    if (ball_pvt.position.y > height_lim)
+      continue;
 
-    for (auto &ball_pvt : ball.projected_path) {
-      if (this->goal_scored(ball_pvt.position.z))
-        break;
-      if (ball_pvt.time > time_lim)
-        break;
-      if (ball_pvt.position.y > height_lim)
-        continue;
+    double needed_time = init_time + geom::time_to_go_to(
+      from_position,
+      robot.velocity.drop(),
+      ball_pvt.position.drop(),
+      true
+    );
 
-      double needed_time = init_time + geom::time_to_go_to(
-        from_position,
-        robot.velocity.drop(),
-        ball_pvt.position.drop(),
-        true
-      );
-
-      if (needed_time <= ball_pvt.time)
-        return {true, ball_pvt.position, needed_time};
-    }
-
-    return {false, Vec3D(), INF};
-  } else {
-    for (auto &ball_pvt : ball.projected_path) {
-      if (this->goal_scored(ball_pvt.position.z))
-        break;
-      if (ball_pvt.time > time_lim)
-        break;
-      if (ball_pvt.position.y > height_lim)
-        continue;
-
-      auto [lock_exists, lock_position] =
-        geom::ray_circle_first_intersection(
-          robot.position.drop(),
-          robot.velocity.drop(),
-          ball_pvt.position.drop(),
-          this->rules.ROBOT_RADIUS + this->rules.BALL_RADIUS - BIG_EPS
-        );
-
-      double needed_time = geom::time_to_go_to(
-        robot.position.drop(),
-        robot.velocity.drop(),
-        ball_pvt.position.drop(),
-        true
-      );
-
-      if (lock_exists)
-        return {true, ball_pvt.position, needed_time};
-    }
+    if (needed_time <= ball_pvt.time)
+      return {true, ball_pvt.position, needed_time};
   }
+
   return {false, Vec3D(), INF};
 }
 
