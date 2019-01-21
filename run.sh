@@ -1,5 +1,4 @@
 SECONDS=0
-echo "time taken: $SECONDS secs"
 
 make -C cpp-cgdk/build || exit 1
 echo DONE MAKING!
