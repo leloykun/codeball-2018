@@ -70,7 +70,7 @@ void MyStrategy::act(
 void MyStrategy::init_strategy(
     const model::Rules &rules,
     const model::Game &game) {
-  if (VERBOSITY >= 2)
+  if (VERBOSITY == 1)
     std::cout << "START!\n";
 
   this->RULES = rules;
@@ -111,9 +111,9 @@ void MyStrategy::init_tick(const model::Game &game) {
 
   this->run_simulation(game);
 
-  if (VERBOSITY >= 2 and this->current_tick % 100 == 0)
+  if (VERBOSITY == 1 and this->current_tick % 100 == 0)
       std::cout << this->current_tick << "\n";
-  else if (VERBOSITY >= 3) {
+  else if (VERBOSITY == 2) {
     std::cout << "----------------------\n";
     std::cout << "current tick: "<<this->current_tick<<"\n";
   }
@@ -294,7 +294,7 @@ Target MyStrategy::calc_defend_spot() {
     clamp(this->ball.position.x,
           -(this->ARENA.goal_width/2.0-2*this->ARENA.bottom_radius),
           this->ARENA.goal_width/2.0-2*this->ARENA.bottom_radius),
-    -this->ARENA.depth/2.0+std::min(0.0, (0.2)*this->ball.position.z));
+    -this->ARENA.depth/2.0+(0.1)*this->ball.position.z);
   Vec2D target_velocity = (target_position - this->me->position.drop()) *
                           this->RULES.ROBOT_MAX_GROUND_SPEED;
   double needed_time = geom::time_to_go_to(
@@ -344,8 +344,8 @@ Target MyStrategy::calc_block_spot(const double &offset) {
   if (nearest_id == -1)
     return {false, Vec2D(), Vec2D()};
 
-  // if (VERBOSITY >= 1)
-  //   this->renderer.draw_sphere(Vec3D(en_attack_pos, 0.0), 1, VIOLET, 1);
+  if (VERBOSITY == 1)
+    this->renderer.draw_sphere(Vec3D(en_attack_pos, 0.0), 1, VIOLET, 1);
 
   Vec2D target_position = geom::offset_to(
     en_attack_pos,
@@ -379,14 +379,23 @@ Target MyStrategy::calc_follow_spot(const double &z_offset) {
   else
     target_position = this->ball.bounce_positions[0].drop();
 
-  // if (VERBOSITY == 1)
-  //   this->renderer.draw_sphere(Vec3D(target_position, 0.0), 1, WHITE, 1);
+  if (VERBOSITY == 1)
+    this->renderer.draw_sphere(Vec3D(target_position, 0.0), 1, WHITE, 1);
 
   if (target_position.x < -this->GOAL_EDGE)
     target_position.x -= this->RULES.ROBOT_RADIUS;
   else if (target_position.x > this->GOAL_EDGE)
     target_position.x += this->RULES.ROBOT_RADIUS;
-  target_position.z -= z_offset;
+  target_position.x = clamp(target_position.x,
+                            -(this->ARENA.width/2.0 - this->ARENA.bottom_radius),
+                             (this->ARENA.width/2.0 - this->ARENA.bottom_radius));
+  target_position.z = clamp(target_position.z - z_offset,
+                            -(this->ARENA.depth/2.0 - this->ARENA.bottom_radius),
+                             (this->ARENA.depth/2.0 - this->ARENA.bottom_radius));
+
+  // Vec2D dir = target_position - this->me->position.drop();
+  // Vec2D 
+
   target_velocity = (target_position - this->me->position.drop()) *
                           this->RULES.ROBOT_MAX_GROUND_SPEED;
   double needed_time = geom::time_to_go_to(
@@ -487,9 +496,7 @@ std::string MyStrategy::custom_rendering() {
       0.5);
     this->renderer.draw_sphere(Vec3D(this->GOAL_LIM_LEFT, 1.0), 1, RED, 1);
     this->renderer.draw_sphere(Vec3D(this->GOAL_LIM_RIGHT, 1.0), 1, RED, 1);
-  }
 
-  if (VERBOSITY == 1) {
     // // draw supersized ball
     // this->renderer.draw_sphere(this->ball.position, 3, WHITE, 0.1);
 
@@ -512,6 +519,7 @@ std::string MyStrategy::custom_rendering() {
 
     for (auto &[id, robot] : this->robots)
       this->renderer.draw_path(robot.projected_path, 0.5, TEAL, 0.5, false);
+
 
     for (int id : this->ally_ids) {
       Vec3D hover = this->robots[id].position;
