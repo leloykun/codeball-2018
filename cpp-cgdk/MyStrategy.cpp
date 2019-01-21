@@ -321,15 +321,6 @@ Target MyStrategy::calc_defend_spot() {
     this->me->first_ball_intercept;
   auto [en_intercept_exists, en_intercept_ball_pos, en_id] =
     this->calc_enemy_first_intercept(i_time);
-  auto [en_lock_exists, en_lock_position, en_lock_time] =
-    this->calc_enemy_first_lock();
-  // auto [en_locked, en_lock_position] =
-  //   geom::ray_circle_first_intersection(
-  //     this->robots[en_id].position.drop(),
-  //     this->robots[en_id].velocity.drop(),
-  //     this->ball.position.drop(),
-  //     this->RULES.ROBOT_RADIUS + this->RULES.BALL_RADIUS - BIG_EPS
-  //   );
 
   if (me_intercept_exists and not en_intercept_exists) {
     for (const PosVelTime &ball_pvt : this->ball.projected_path) {
@@ -384,33 +375,51 @@ Target MyStrategy::calc_defend_spot() {
 }
 
 Target MyStrategy::calc_block_spot(const double &offset) {
+  /*
   int nearest_id = -1;
   Vec2D en_attack_pos;
   double en_attack_time = INF;
 
   for (int id : this->enemy_ids) {
-    auto [exists, first_reachable, time] = this->robots[id].first_ball_intercept;
+   auto [exists, first_reachable, time] = this->robots[id].first_ball_intercept;
 
-    if (exists and
-        time < en_attack_time and
-        this->robots[id].position.z > first_reachable.z) {
-      nearest_id = id;
-      en_attack_pos = first_reachable.drop();
-      en_attack_time = time;
-    }
+   if (exists and
+       time < en_attack_time and
+       this->robots[id].position.z > first_reachable.z) {
+     nearest_id = id;
+     en_attack_pos = first_reachable.drop();
+     en_attack_time = time;
+   }
   }
 
   if (nearest_id == -1)
-    return {false, Vec2D(), Vec2D()};
+   return {false, Vec2D(), Vec2D()};
 
   if (VERBOSITY >= 1)
-    this->renderer.draw_sphere(Vec3D(en_attack_pos, 0.0), 1, VIOLET, 1);
+   this->renderer.draw_sphere(Vec3D(en_attack_pos, 0.0), 1, VIOLET, 1);
+  */
 
-  Vec2D target_position = geom::offset_to(
-    en_attack_pos,
-    this->robots[nearest_id].position.drop(),
-    offset,
-    true);
+  auto [en_lock_exists, en_lock_position, en_id] =
+    this->calc_enemy_first_lock();
+
+  if (not en_lock_exists)
+    return {false, Vec2D(), Vec2D(), 0.0};
+
+  EntityLite r_dummy = this->robots[en_id].lighten();
+  r_dummy.position = Vec3D(en_lock_position, this->ball.position.y);
+  r_dummy.velocity = Vec3D(en_lock_position - this->robots[en_id].position.drop(), 0).normalize() *
+                     this->RULES.ROBOT_MAX_GROUND_SPEED;
+  EntityLite b_dummy = this->ball.lighten();
+
+  bool has_collided = this->sim.collide_entities(r_dummy, b_dummy);
+  assert(has_collided);
+
+  Vec2D target_position =
+    geom::offset_to(
+      b_dummy.position.drop(),
+      b_dummy.position.drop() + b_dummy.velocity.drop(),
+      offset
+    );
   Vec2D target_velocity = (target_position - this->me->position.drop()) *
                           this->RULES.ROBOT_MAX_GROUND_SPEED;
   double needed_time = geom::time_to_go_to(
@@ -420,7 +429,7 @@ Target MyStrategy::calc_block_spot(const double &offset) {
   );
 
   return {
-    this->robots[nearest_id].type == ENEMY,
+    true,
     target_position,
     target_velocity,
     needed_time
@@ -589,7 +598,7 @@ std::tuple<bool, Vec3D, int> MyStrategy::calc_enemy_first_intercept(
   return {false, intercept_pos, intercept_id};
 }
 
-std::tuple<bool, Vec2D, double> MyStrategy::calc_enemy_first_lock() {
+std::tuple<bool, Vec2D, int> MyStrategy::calc_enemy_first_lock() {
   double lock_time = INF;
   Vec2D lock_pos;
   int locker_id = -1;
@@ -603,13 +612,20 @@ std::tuple<bool, Vec2D, double> MyStrategy::calc_enemy_first_lock() {
       );
     if (i_exists and i_time_needed < lock_time) {
       lock_time = i_time_needed;
-      lock_pos = i_pos.drop();
+      auto [lock_exists, lock_pos_temp] =
+        geom::ray_circle_first_intersection(
+          this->robots[id].position.drop(),
+          this->robots[id].velocity.drop(),
+          i_pos.drop(),
+          this->RULES.ROBOT_RADIUS + this->RULES.BALL_RADIUS - BIG_EPS
+        );
+      lock_pos = lock_pos_temp;
       locker_id = id;
     }
   }
   if (locker_id != -1)
-    return {true, lock_pos, lock_time};
-  return {false, lock_pos, lock_time};
+    return {true, lock_pos, locker_id};
+  return {false, lock_pos, locker_id};
 }
 
 double MyStrategy::calc_jump_speed(const double &acceptable_jump_dist) {
