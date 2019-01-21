@@ -321,13 +321,13 @@ Target MyStrategy::calc_defend_spot() {
     this->me->first_ball_intercept;
   auto [en_intercept_exists, en_intercept_ball_pos, en_id] =
     this->calc_enemy_first_intercept(i_time);
-  auto [en_locked, en_lock_position] =
-    geom::ray_circle_first_intersection(
-      this->robots[en_id].position.drop(),
-      this->robots[en_id].velocity.drop(),
-      this->ball.position.drop(),
-      this->RULES.ROBOT_RADIUS + this->RULES.BALL_RADIUS - BIG_EPS
-    );
+  // auto [en_locked, en_lock_position] =
+  //   geom::ray_circle_first_intersection(
+  //     this->robots[en_id].position.drop(),
+  //     this->robots[en_id].velocity.drop(),
+  //     this->ball.position.drop(),
+  //     this->RULES.ROBOT_RADIUS + this->RULES.BALL_RADIUS - BIG_EPS
+  //   );
 
   if (me_intercept_exists and not en_intercept_exists) {
     for (const PosVelTime &ball_pvt : this->ball.projected_path) {
