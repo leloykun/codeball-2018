@@ -309,8 +309,8 @@ Target MyStrategy::calc_defend_spot() {
         target_position.x = ball_pvt.position.x;
         Vec2D delta_pos = target_position - this->me->position.drop();
         double need_speed = delta_pos.len() / ball_pvt.time;
-        // target_velocity = delta_pos.normalize() * need_speed;
-        target_velocity = delta_pos.normalize() * this->RULES.ROBOT_MAX_GROUND_SPEED;
+        target_velocity = delta_pos.normalize() * need_speed;
+        // target_velocity = delta_pos.normalize() * this->RULES.ROBOT_MAX_GROUND_SPEED;
         return {true, target_position, target_velocity, ball_pvt.time};
       }
     }
