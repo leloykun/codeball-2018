@@ -70,7 +70,7 @@ void MyStrategy::act(
 void MyStrategy::init_strategy(
     const model::Rules &rules,
     const model::Game &game) {
-  if (VERBOSITY == 1)
+  if (VERBOSITY >= 2)
     std::cout << "START!\n";
 
   this->RULES = rules;
@@ -111,9 +111,9 @@ void MyStrategy::init_tick(const model::Game &game) {
 
   this->run_simulation(game);
 
-  if (VERBOSITY == 1 and this->current_tick % 100 == 0)
+  if (VERBOSITY >= 2 and this->current_tick % 100 == 0)
       std::cout << this->current_tick << "\n";
-  else if (VERBOSITY == 2) {
+  else if (VERBOSITY >= 3) {
     std::cout << "----------------------\n";
     std::cout << "current tick: "<<this->current_tick<<"\n";
   }
@@ -344,8 +344,8 @@ Target MyStrategy::calc_block_spot(const double &offset) {
   if (nearest_id == -1)
     return {false, Vec2D(), Vec2D()};
 
-  if (VERBOSITY == 1)
-    this->renderer.draw_sphere(Vec3D(en_attack_pos, 0.0), 1, VIOLET, 1);
+  // if (VERBOSITY >= 1)
+  //   this->renderer.draw_sphere(Vec3D(en_attack_pos, 0.0), 1, VIOLET, 1);
 
   Vec2D target_position = geom::offset_to(
     en_attack_pos,
@@ -379,8 +379,8 @@ Target MyStrategy::calc_follow_spot(const double &z_offset) {
   else
     target_position = this->ball.bounce_positions[0].drop();
 
-  if (VERBOSITY == 1)
-    this->renderer.draw_sphere(Vec3D(target_position, 0.0), 1, WHITE, 1);
+  // if (VERBOSITY == 1)
+  //   this->renderer.draw_sphere(Vec3D(target_position, 0.0), 1, WHITE, 1);
 
   if (target_position.x < -this->GOAL_EDGE)
     target_position.x -= this->RULES.ROBOT_RADIUS;
