@@ -8,8 +8,6 @@
 #include "PointVectors.h"
 #include <tuple>
 
-#include <iostream>
-
 namespace geom {
   std::vector<Vec2D> get_tangents_to_circle(
       const Vec2D &c_center,
@@ -21,12 +19,6 @@ namespace geom {
       const double &c_radius,
       const Vec2D &in_point,
       const Vec2D &out_point);
-
-  std::tuple<bool, Vec2D> ray_circle_first_intersection(
-      const Vec2D &origin,
-      const Vec2D &dir,
-      const Vec2D &c_center,
-      const double &radius);
 
   std::tuple<bool, Vec2D> ray_segment_intersection(
       const Vec2D &origin,
