@@ -197,7 +197,7 @@ Role MyStrategy::calc_role() {
 
   if (role == GOALKEEPER and
       this->t_attack_aggro.exists and
-      this->t_attack_aggro.position.z <= this->DEFENSE_BORDER and
+      this->t_attack_aggro.position.z <= this->ZONE_BORDER and
       not this->can_enemies_intercept_earlier(t_attack_aggro.needed_time)) {
     role = AGGRESSIVE_DEFENDER;
   }
