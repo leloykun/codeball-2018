@@ -321,6 +321,8 @@ Target MyStrategy::calc_defend_spot() {
     this->me->first_ball_intercept;
   auto [en_intercept_exists, en_intercept_ball_pos, en_id] =
     this->calc_enemy_first_intercept(i_time);
+  auto [en_lock_exists, en_lock_position, en_lock_time] =
+    this->calc_enemy_first_lock();
   // auto [en_locked, en_lock_position] =
   //   geom::ray_circle_first_intersection(
   //     this->robots[en_id].position.drop(),
@@ -347,7 +349,8 @@ Target MyStrategy::calc_defend_spot() {
         return {true, target_position, target_velocity, ball_pvt.time};
       }
     }
-  } /* else if (en_intercept_exists and en_locked) {
+  }
+  /* else if (en_intercept_exists and en_locked) {
     EntityLite r_dummy = this->robots[en_id].lighten();
     r_dummy.position = Vec3D(en_lock_position, this->ball.position.y);
     r_dummy.velocity = Vec3D(en_lock_position - this->robots[en_id].position.drop(), 0).normalize() *
@@ -581,9 +584,32 @@ std::tuple<bool, Vec3D, int> MyStrategy::calc_enemy_first_intercept(
       intercept_id = id;
     }
   }
-  if (intercept_time < until)
+  if (intercept_time < until and intercept_id != -1)
     return {true, intercept_pos, intercept_id};
   return {false, intercept_pos, intercept_id};
+}
+
+std::tuple<bool, Vec2D, double> MyStrategy::calc_enemy_first_lock() {
+  double lock_time = INF;
+  Vec2D lock_pos;
+  int locker_id = -1;
+  for (int id : this->enemy_ids) {
+    auto [i_exists, i_pos, i_time_needed] =
+      this->sim.calc_ball_intercept(
+        this->robots[id],
+        this->ball,
+        this->REACHABLE_HEIGHT,
+        false
+      );
+    if (i_exists and i_time_needed < lock_time) {
+      lock_time = i_time_needed;
+      lock_pos = i_pos.drop();
+      locker_id = id;
+    }
+  }
+  if (locker_id != -1)
+    return {true, lock_pos, lock_time};
+  return {false, lock_pos, lock_time};
 }
 
 double MyStrategy::calc_jump_speed(const double &acceptable_jump_dist) {

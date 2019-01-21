@@ -110,6 +110,7 @@ public:
       const double &acceptable_delta);
   std::tuple<bool, Vec3D, int> calc_enemy_first_intercept(
       const double &until);
+  std::tuple<bool, Vec2D, double> calc_enemy_first_lock();
 
   double calc_jump_speed(const double &acceptable_jump_dist);
   std::tuple<bool, Vec3D, Vec3D> calc_valid_jump_intercept(
