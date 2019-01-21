@@ -345,7 +345,7 @@ Target MyStrategy::calc_defend_spot() {
         return {true, target_position, target_velocity, ball_pvt.time};
       }
     }
-  } else if (en_can_intercept and en_locked) {
+  } /* else if (en_can_intercept and en_locked) {
     EntityLite r_dummy = this->robots[en_id].lighten();
     r_dummy.position = Vec3D(en_lock_position, this->ball.position.y);
     r_dummy.velocity = Vec3D(en_lock_position - this->robots[en_id].position.drop(), 0).normalize() *
@@ -373,7 +373,7 @@ Target MyStrategy::calc_defend_spot() {
       target_velocity = delta_pos.normalize() * need_speed;
       return {true, target_position, target_velocity, needed_time};
     }
-  }
+  }*/
 
   return {true, target_position, target_velocity, needed_time};
 }
