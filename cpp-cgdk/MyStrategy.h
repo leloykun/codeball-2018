@@ -23,6 +23,8 @@ const int SIMULATION_NUM_TICKS = 240;
 const double SIMULATION_PRECISION = 1/60.0;
 const int NUM_RAYS = 20;
 
+const double SLOWING_DIST = 5.0;
+
 struct Target {
   bool exists;
   Vec2D position;
