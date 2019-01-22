@@ -20,6 +20,12 @@ namespace geom {
       const Vec2D &in_point,
       const Vec2D &out_point);
 
+  std::tuple<bool, Vec2D> ray_circle_first_intersection(
+      const Vec2D &origin,
+      const Vec2D &dir,
+      const Vec2D &c_center,
+      const double &radius);
+
   std::tuple<bool, Vec2D> ray_segment_intersection(
       const Vec2D &origin,
       const Vec2D &dir,
