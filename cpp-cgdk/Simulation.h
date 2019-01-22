@@ -86,7 +86,8 @@ struct Simulation {
       const double &time_lim=INF);
   std::unique_ptr<Path> calc_travel_path(
       const Entity &robot,
-      const Vec2D &target);
+      const Vec2D &target,
+      const double &delta_time);
 
   // ----------- Found in: SimUtils.cpp ---------------
   DaN dan_to_plane(

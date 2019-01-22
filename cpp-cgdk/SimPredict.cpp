@@ -192,8 +192,27 @@ std::tuple<bool, Vec3D, double> Simulation::calc_ball_intercept(
 
 std::unique_ptr<Path> Simulation::calc_travel_path(
     const Entity &robot,
-    const Vec2D &target) {
-  Path travel_path;
+    const Vec2D &target,
+    const double &delta_time) {
+  EntityLite c_robot = robot.lighten();
+
+  double t = 0.0;
+  Path travel_path = {{c_robot.position, c_robot.velocity, t}};
+
+  double dist = (c_robot.position - Vec3D(target, c_robot.radius)).len();
+  double speed = c_robot.velocity.len();
+  while (dist > BIG_EPS and speed >= BIG_EPS) {
+    for (double partition_size : TICK_PARTITION) {
+      this->move(c_robot, delta_time * partition_size);
+      this->collide_with_arena(c_robot);
+    }
+
+    t += delta_time;
+    travel_path.push_back({c_robot.position, c_robot.velocity, t});
+
+    dist = (c_robot.position - Vec3D(target, c_robot.radius)).len();
+    speed = c_robot.velocity.len();
+  }
 
   return std::make_unique<Path>(travel_path);
 }
