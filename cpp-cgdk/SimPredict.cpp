@@ -127,10 +127,6 @@ double Simulation::calc_travel_time(
   double time = 0.0;
   Vec2D from_position = robot.position.drop();
   if (not robot.touch) {
-    for (auto robot_pvt : robot.projected_jump_path)
-      if ((robot_pvt.position.drop() - target_position).len() < BIG_EPS)
-        return robot_pvt.time;
-
     time += robot.projected_jump_path.back().time;
     from_position = robot.projected_jump_path.back().position.drop();
   }
