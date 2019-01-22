@@ -20,6 +20,7 @@
 #include <cassert>
 #include <map>
 #include <tuple>
+#include <memory>
 
 const std::vector<double> TICK_PARTITION = {0.01, 0.01, 0.18, 0.20, 0.20, 0.20, 0.20};
 // const std::vector<double> TICK_PARTITION = {0.01, 0.01, 0.98};
@@ -83,6 +84,9 @@ struct Simulation {
       const Entity &ball,
       const double &reachable_height,
       const double &time_lim=INF);
+  std::unique_ptr<Path> calc_travel_path(
+      const Entity &robot,
+      const Vec2D &target);
 
   // ----------- Found in: SimUtils.cpp ---------------
   DaN dan_to_plane(

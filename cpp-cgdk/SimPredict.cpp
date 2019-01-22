@@ -186,4 +186,12 @@ std::tuple<bool, Vec3D, double> Simulation::calc_ball_intercept(
   return {false, Vec3D(), INF};
 }
 
+std::unique_ptr<Path> Simulation::calc_travel_path(
+    const Entity &robot,
+    const Vec2D &target) {
+  Path travel_path;
+
+  return std::make_unique<Path>(travel_path);
+}
+
 #endif
