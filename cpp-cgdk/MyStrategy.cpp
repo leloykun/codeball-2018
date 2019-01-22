@@ -263,14 +263,22 @@ Target MyStrategy::calc_intercept_spot(
     if (ball_pvt.time < BIG_EPS)
       continue;
 
-    target_position.x = ball_pvt.position.x;
-    if (to_shift_x) {
-      if (target_position.x < -this->GOAL_EDGE)
-        target_position.x -= this->RULES.ROBOT_RADIUS;
-      else if (target_position.x > this->GOAL_EDGE)
-        target_position.x += this->RULES.ROBOT_RADIUS;
-    }
-    target_position.z = ball_pvt.position.z - z_offset;
+    target_position =
+      geom::offset_to(
+        ball_pvt.position.drop(),
+        Vec2D(0.0, this->ARENA.depth/2.0),
+        this->RULES.ROBOT_RADIUS + this->RULES.BALL_RADIUS - BIG_EPS,
+        true
+      );
+
+    // target_position.x = ball_pvt.position.x;
+    // if (to_shift_x) {
+    //   if (target_position.x < -this->GOAL_EDGE)
+    //     target_position.x -= this->RULES.ROBOT_RADIUS;
+    //   else if (target_position.x > this->GOAL_EDGE)
+    //     target_position.x += this->RULES.ROBOT_RADIUS;
+    // }
+    // target_position.z = ball_pvt.position.z - z_offset;
 
     // if I'm farther than the target..
     if (this->me->position.z > target_position.z)
