@@ -180,7 +180,7 @@ void MyStrategy::calc_targets() {
     6*this->RULES.ROBOT_RADIUS,
     false,
     1.5*this->RULES.ROBOT_RADIUS,
-    0.9*this->RULES.ROBOT_MAX_GROUND_SPEED,
+    0.5*this->RULES.ROBOT_MAX_GROUND_SPEED,
     1.0*this->RULES.ROBOT_MAX_GROUND_SPEED);
   t_cross = this->calc_defend_spot();
   t_block = this->calc_block_spot(2*this->RULES.BALL_RADIUS);
