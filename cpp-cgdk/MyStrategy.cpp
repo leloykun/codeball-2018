@@ -183,7 +183,7 @@ void MyStrategy::calc_targets() {
     0.5*this->RULES.ROBOT_MAX_GROUND_SPEED,
     1.0*this->RULES.ROBOT_MAX_GROUND_SPEED);
   t_cross = this->calc_defend_spot();
-  t_block = this->calc_block_spot(4*this->RULES.BALL_RADIUS);
+  t_block = this->calc_block_spot(2*this->RULES.BALL_RADIUS);
   t_follow = this->calc_follow_spot(2*this->RULES.BALL_RADIUS);
 }
 
@@ -267,10 +267,9 @@ Target MyStrategy::calc_intercept_spot(
       geom::offset_to(
         ball_pvt.position.drop(),
         Vec2D(0.0, this->ARENA.depth/2.0),
-        this->RULES.ROBOT_RADIUS + this->RULES.BALL_RADIUS - BIG_EPS,
+        this->RULES.BALL_RADIUS + this->RULES.ROBOT_RADIUS,
         true
       );
-
     // target_position.x = ball_pvt.position.x;
     // if (to_shift_x) {
     //   if (target_position.x < -this->GOAL_EDGE)
