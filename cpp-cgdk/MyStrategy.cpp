@@ -267,7 +267,7 @@ Target MyStrategy::calc_intercept_spot(
       geom::offset_to(
         ball_pvt.position.drop(),
         Vec2D(0.0, this->ARENA.depth/2.0),
-        this->RULES.BALL_RADIUS + this->RULES.ROBOT_RADIUS,
+        z_offset,
         true
       );
     // target_position.x = ball_pvt.position.x;
