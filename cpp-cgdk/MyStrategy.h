@@ -103,7 +103,7 @@ public:
   Target calc_block_spot(const double &offset);
   Target calc_follow_spot(const double &z_offset);
 
-  bool is_closest_to_net();
+  // bool is_closest_to_net();
   bool is_duplicate_target(
       const Vec2D &position,
       const double &acceptable_delta);

@@ -191,12 +191,12 @@ Role MyStrategy::calc_role() {
   // Role role = (this->robots.size() == 2 ? ATTACKER : GOALKEEPER);
   Role role = ATTACKER;
 
-  // for (int id : this->ally_ids)
-  //   if (id != this->me_id and
-  //       this->robots[id].position.z < this->me->position.z)
-  //     role = ATTACKER;
-  if (this->is_closest_to_net())
-    role = GOALKEEPER;
+  for (int id : this->ally_ids)
+   if (id != this->me_id and
+       this->robots[id].position.z < this->me->position.z)
+     role = ATTACKER;
+  // if (this->is_closest_to_net())
+  //   role = GOALKEEPER;
 
   if (role == GOALKEEPER and
       this->t_attack_aggro.exists and
@@ -442,25 +442,26 @@ Target MyStrategy::calc_follow_spot(const double &z_offset) {
   return {true, target_position, target_velocity, needed_time};
 }
 
-bool MyStrategy::is_closest_to_net() {
-  double my_time_to_net = this->sim.calc_travel_time(
-    *this->me,
-    Vec2D(this->me->position.x, -this->ARENA.depth/2.0)
-  );
 
-  for (int id : this->ally_ids) {
-    if (id == this->me_id)
-      continue;
-
-    double time_to_net = this->sim.calc_travel_time(
-      this->robots[id],
-      Vec2D(this->robots[id].position.x, -this->ARENA.depth/2.0)
-    );
-    if (time_to_net < my_time_to_net)
-      return false;
-  }
-  return true;
-}
+// bool MyStrategy::is_closest_to_net() {
+//   double my_time_to_net = this->sim.calc_travel_time(
+//     *this->me,
+//     t_cross.position
+//   );
+//
+//   for (int id : this->ally_ids) {
+//     if (id == this->me_id)
+//       continue;
+//
+//     double time_to_net = this->sim.calc_travel_time(
+//       this->robots[id],
+//       t_cross.position
+//     );
+//     if (time_to_net < my_time_to_net)
+//       return false;
+//   }
+//   return true;
+// }
 
 bool MyStrategy::is_duplicate_target(
     const Vec2D &position,
