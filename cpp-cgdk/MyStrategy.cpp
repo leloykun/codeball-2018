@@ -290,18 +290,22 @@ Target MyStrategy::calc_intercept_spot(
 }
 
 Target MyStrategy::calc_defend_spot() {
-  Vec2D target_position(
+  Vec2D target_position;
+  Vec2D target_velocity;
+
+  target_position = Vec2D(
     clamp(this->ball.position.x,
           -(this->ARENA.goal_width/2.0-2*this->ARENA.bottom_radius),
           this->ARENA.goal_width/2.0-2*this->ARENA.bottom_radius),
-    -this->ARENA.depth/2.0+(0.1)*this->ball.position.z);
+    -this->ARENA.depth/2.0+(0.1)*this->ball.position.z
+  );
 
   Vec2D dir = target_position - this->me->position.drop();
   double dist = dir.len();
   double speed = this->me->velocity.drop().dot(dir.normalize());
   double dist_to_stop = speed*speed / (2.0*this->RULES.ROBOT_ACCELERATION);
 
-  Vec2D target_velocity = dir * this->RULES.ROBOT_MAX_GROUND_SPEED;
+  target_velocity = dir * this->RULES.ROBOT_MAX_GROUND_SPEED;
   double needed_time = geom::time_to_go_to(
     this->me->position.drop(),
     this->me->velocity.drop(),
@@ -323,18 +327,28 @@ Target MyStrategy::calc_defend_spot() {
       if (ball_pvt.position.z <= this->CRITICAL_BORDER) {
         target_position.x = ball_pvt.position.x;
 
-        dir = target_position - this->me->position.drop();
-        dist = dir.len();
+        Vec2D dir = target_position - this->me->position.drop();
+        double dist = dir.len();
+        double speed = this->me->velocity.drop().dot(dir.normalize());
+        double dist_to_stop = speed*speed / (2.0*this->RULES.ROBOT_ACCELERATION);
 
         target_velocity = dir * this->RULES.ROBOT_MAX_GROUND_SPEED;
-        if (dist < SLOWING_DIST)
-          target_velocity *= (dist / SLOWING_DIST);
+        double needed_time = geom::time_to_go_to(
+          this->me->position.drop(),
+          this->me->velocity.drop(),
+          target_position
+        );
+
+        if (dist <= dist_to_stop) {
+          target_velocity *= -1;
+          needed_time = speed / this->RULES.ROBOT_ACCELERATION;
+        }
 
         // Vec2D delta_pos = target_position - this->me->position.drop();
         // double need_speed = delta_pos.len() / ball_pvt.time;
         // target_velocity = delta_pos.normalize() * need_speed;
         // target_velocity = delta_pos.normalize() * this->RULES.ROBOT_MAX_GROUND_SPEED;
-        return {true, target_position, target_velocity, ball_pvt.time};
+        return {true, target_position, target_velocity, needed_time};
       }
     }
   }
