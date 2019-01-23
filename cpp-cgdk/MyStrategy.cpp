@@ -183,7 +183,7 @@ void MyStrategy::calc_targets() {
     0.5*this->RULES.ROBOT_MAX_GROUND_SPEED,
     1.0*this->RULES.ROBOT_MAX_GROUND_SPEED);
   t_cross = this->calc_defend_spot();
-  t_block = this->calc_block_spot(5*this->RULES.BALL_RADIUS);
+  t_block = this->calc_block_spot(2*this->RULES.BALL_RADIUS);
   t_follow = this->calc_follow_spot(4.5 + this->RULES.BALL_RADIUS);
 }
 
@@ -296,9 +296,9 @@ Target MyStrategy::calc_defend_spot() {
 
   target_position = Vec2D(
     clamp(this->ball.position.x,
-          -(this->ARENA.goal_width/2.0-2*this->ARENA.bottom_radius),
-          this->ARENA.goal_width/2.0-2*this->ARENA.bottom_radius),
-    -this->ARENA.depth/2.0+(0.1)*this->ball.position.z
+          -(this->ARENA.goal_width/2.0 - this->ARENA.bottom_radius),
+          this->ARENA.goal_width/2.0 - this->ARENA.bottom_radius),
+    -this->ARENA.depth/2.0 + 0.1*this->ball.position.z
   );
 
   std::tie(needed_time, target_velocity) =
