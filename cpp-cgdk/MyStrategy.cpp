@@ -298,16 +298,20 @@ Target MyStrategy::calc_defend_spot() {
 
   Vec2D dir = target_position - this->me->position.drop();
   double dist = dir.len();
+  double speed = this->me->velocity.drop().dot(dir.normalize());
+  double dist_to_stop = speed*speed / (2.0*this->RULES.ROBOT_ACCELERATION);
 
   Vec2D target_velocity = dir * this->RULES.ROBOT_MAX_GROUND_SPEED;
-  if (dist < SLOWING_DIST)
-    target_velocity *= (dist / SLOWING_DIST);
-
   double needed_time = geom::time_to_go_to(
     this->me->position.drop(),
     this->me->velocity.drop(),
     target_position
   );
+
+  if (dist <= dist_to_stop) {
+    target_velocity *= -1;
+    needed_time = speed / this->RULES.ROBOT_ACCELERATION;
+  }
 
   auto [i_exists, i_position, i_time] = this->me->first_ball_intercept;
   if (i_exists and not this->can_enemies_intercept_earlier(i_time)) {
@@ -369,17 +373,20 @@ Target MyStrategy::calc_block_spot(const double &offset) {
 
   Vec2D dir = target_position - this->me->position.drop();
   double dist = dir.len();
+  double speed = this->me->velocity.drop().dot(dir.normalize());
+  double dist_to_stop = speed*speed / (2.0*this->RULES.ROBOT_ACCELERATION);
 
   Vec2D target_velocity = dir * this->RULES.ROBOT_MAX_GROUND_SPEED;
-  if (dist < SLOWING_DIST)
-    target_velocity *= (dist / SLOWING_DIST);
-  // Vec2D target_velocity = (target_position - this->me->position.drop()) *
-  //                         this->RULES.ROBOT_MAX_GROUND_SPEED;
   double needed_time = geom::time_to_go_to(
     this->me->position.drop(),
     this->me->velocity.drop(),
     target_position
   );
+
+  if (dist <= dist_to_stop) {
+    target_velocity *= -1;
+    needed_time = speed / this->RULES.ROBOT_ACCELERATION;
+  }
 
   return {
     this->robots[nearest_id].type == ENEMY,
@@ -414,20 +421,23 @@ Target MyStrategy::calc_follow_spot(const double &z_offset) {
                             -(this->ARENA.depth/2.0 - this->ARENA.bottom_radius),
                              (this->ARENA.depth/2.0 - this->ARENA.bottom_radius));
 
+
   Vec2D dir = target_position - this->me->position.drop();
   double dist = dir.len();
+  double speed = this->me->velocity.drop().dot(dir.normalize());
+  double dist_to_stop = speed*speed / (2.0*this->RULES.ROBOT_ACCELERATION);
 
   target_velocity = dir * this->RULES.ROBOT_MAX_GROUND_SPEED;
-  if (dist < SLOWING_DIST)
-    target_velocity *= (dist / SLOWING_DIST);
-
-  // target_velocity = (target_position - this->me->position.drop()) *
-  //                         this->RULES.ROBOT_MAX_GROUND_SPEED;
   double needed_time = geom::time_to_go_to(
     this->me->position.drop(),
     this->me->velocity.drop(),
     target_position
   );
+
+  if (dist <= dist_to_stop) {
+    target_velocity *= -1;
+    needed_time = speed / this->RULES.ROBOT_ACCELERATION;
+  }
 
   return {true, target_position, target_velocity, needed_time};
 }

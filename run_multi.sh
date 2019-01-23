@@ -6,8 +6,8 @@ NUM_CORES=8
 
 BATCHES=${1:-1}
 DURATION=${2:-18000}
-VERSION_P1=${3:-43}
-VERSION_P2=${4:-44}
+VERSION_P1=${3:-44}
+VERSION_P2=${4:-45}
 
 for ((batch = 0; batch < $BATCHES; batch++)) do
   for ((core = 0; core < $NUM_CORES; core++)) do
