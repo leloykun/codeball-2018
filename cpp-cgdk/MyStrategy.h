@@ -108,6 +108,8 @@ public:
       const double &acceptable_delta);
   bool can_enemies_intercept_earlier(const double &until);
 
+  std::tuple<double, Vec2D> calc_travel_time_and_velocity(
+      const Vec2D &target_position);
   double calc_jump_speed(const double &acceptable_jump_dist);
   std::tuple<bool, Vec3D, Vec3D> calc_valid_jump_intercept(
       const Path &robot_path,
