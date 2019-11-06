@@ -1,7 +1,7 @@
 SECONDS=0
 
-make -C cpp-cgdk/build || exit 1
-echo DONE MAKING!
+# make -C cpp-cgdk/build || exit 1
+# echo DONE MAKING!
 
 SOURCE_1=${1:-build/MyStrategy}
 SOURCE_2=${2:-versions/MyStrategy_v44}
