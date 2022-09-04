@@ -102,7 +102,10 @@ To run a benchmark test, simply run
 For **`run.sh`**:
 
 ```bash
-./run.sh [GAME_MODE="play"] [IP_ADDRESS="127.0.0.1"] [DURATION=18000] [P1_STRATEGY="cpp-cgdk/versions/CesistaStrategy_v47"] [P2_STRATEGY="cpp-cgdk/build/MyStrategy"] [P1_NAME="Cesista's Strategy"] [P2_NAME="Current Strategy"] [P1_PORT=31001] [P2_PORT=31002] [P1_KEY=0000000000000000] [P2_KEY=0000000000000000]
+./run.sh [GAME_MODE="play"] [IP_ADDRESS="127.0.0.1"] [DURATION=18000] \
+[P1_STRATEGY="cpp-cgdk/versions/CesistaStrategy_v47"] [P2_STRATEGY="cpp-cgdk/build/MyStrategy"] \
+[P1_NAME="Cesista's Strategy"] [P2_NAME="Current Strategy"] [P1_PORT=31001] \
+[P2_PORT=31002] [P1_KEY=0000000000000000] [P2_KEY=0000000000000000]
 ```
 
 Note: `GAME_MODE` can only be one of `play`, `auto`, `helper`, or `empty`.
@@ -110,7 +113,9 @@ Note: `GAME_MODE` can only be one of `play`, `auto`, `helper`, or `empty`.
 For **`run_benchmark.sh`**:
 
 ```bash
-./run_benchmark [BATCHES=1] [IP_ADDRESS="127.0.0.1"] [DURATION=18000] [P1_STRATEGY="cpp-cgdk/versions/CesistaStrategy_v47"] [P2_STRATEGY="cpp-cgdk/build/MyStrategy"] [P1_NAME="Cesista's Strategy"] [P2_NAME="Current Strategy"]
+./run_benchmark [BATCHES=1] [IP_ADDRESS="127.0.0.1"] [DURATION=18000] 
+[P1_STRATEGY="cpp-cgdk/versions/CesistaStrategy_v47"] [P2_STRATEGY="cpp-cgdk/build/MyStrategy"] \
+[P1_NAME="Cesista's Strategy"] [P2_NAME="Current Strategy"]
 ```
 
 ### FAQ
