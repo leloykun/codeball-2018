@@ -7,6 +7,9 @@ using namespace model;
 using namespace std;
 
 int main(int argc, char* argv[]) {
+    for (int i = 0; i < argc; ++i) {
+        std::cout << argv[i] << "\n";
+    }
     if (argc == 4) {
         Runner runner(argv[1], argv[2], argv[3]);
         runner.run();

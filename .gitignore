@@ -1,13 +1,16 @@
 *.tar.gz
 *.zip
 *.pdf
+!developer_guide.pdf
 *.ipynb
 ssh.key
 .ipynb_checkpoints/*
+
 cpp-cgdk/build/*
-!cpp-cgdk/build/MyStrategy
-cpp-cgdk/versions/*_files
+# !cpp-cgdk/build/MyStrategy
+cpp-cgdk/CMakeFiles/*
+cpp-cgdk/versions/*
+!cpp-cgdk/versions/CesistaStrategy_v47
+
 codeball2018-linux/logs/*
-python.3-cgdk/*
-repeater/*
-MyStrategy_temp.cpp
+benchmark_results.txt

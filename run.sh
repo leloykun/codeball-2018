@@ -1,28 +1,67 @@
 SECONDS=0
 
-# make -C cpp-cgdk/build || exit 1
-# echo DONE MAKING!
+GAME_MODE=${1:-play}
+IP_ADDRESS=${2:-127.0.0.1}
+DURATION=${3:-18000}
+P1_STRATEGY=${4:-cpp-cgdk/versions/CesistaStrategy_v47}
+P2_STRATEGY=${5:-cpp-cgdk/build/MyStrategy}
+P1_NAME=${6:-"Cesista's Strategy"}
+P2_NAME=${7:-"Current Strategy"}
+P1_PORT=${8:-31001}
+P2_PORT=${9:-31002}
+P1_KEY=${10:-0000000000000000}
+P2_KEY=${11:-0000000000000000}
 
-SOURCE_1=${1:-build/MyStrategy}
-SOURCE_2=${2:-versions/MyStrategy_v44}
-
-codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p2-name PREV-STRAT \
- --p2 tcp-31002 --results-file res.txt --duration 7200 --no-countdown \
- --nitro true &
-# codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p2-name EMPTY \
-#   --p2 empty --results-file res.txt --duration 7200 --no-countdown \
-#   --nitro true &
-# codeball2018-linux/codeball2018 --p1-name CUR-STRAT --p2-name HELPER \
-#   --p2 helper --results-file res.txt --duration 7200 --no-countdown \
-#   --nitro true &
-sleep 1; cpp-cgdk/$SOURCE_1 &
-sleep 1; cpp-cgdk/$SOURCE_2 127.0.0.1 31002 0000000000000000
-# sleep 1; python3 python.3-cgdk/Runner.py 127.0.0.1 31002 0000000000000000
+echo $GAME_MODE
+if [[ $GAME_MODE == "auto" ]]
+then
+  codeball2018-linux/codeball2018 --p1-name "$P1_NAME" --p2-name "$P2_NAME" \
+  --p1 tcp-$P1_PORT --p2 tcp-$P2_PORT --results-file results/run_result.txt \
+  --duration $DURATION --no-countdown --nitro true &
+  sleep 1; $P1_STRATEGY $IP_ADDRESS $P1_PORT $P1_KEY &
+  sleep 1; $P2_STRATEGY $IP_ADDRESS $P2_PORT $P2_KEY
+elif [[ $GAME_MODE == "play" ]]
+then
+  codeball2018-linux/codeball2018 --p1-name "Player" --p2-name "$P1_NAME" \
+  --p1 keyboard --p2 tcp-$P1_PORT --results-file results/run_result.txt \
+  --duration $DURATION --nitro true &
+  sleep 1; $P1_STRATEGY $IP_ADDRESS $P1_PORT $P1_KEY
+elif [[ $GAME_MODE == "helper" ]]
+then
+  codeball2018-linux/codeball2018 --p1-name "Player" --p2-name "Helper" \
+  --p1 keyboard --p2 helper --results-file results/run_result.txt \
+  --duration $DURATION --nitro true
+elif [[ $GAME_MODE == "empty" ]]
+then
+  codeball2018-linux/codeball2018 --p1-name "Player" --p2-name "" \
+  --p1 keyboard --p2 empty --results-file results/run_result.txt \
+  --duration $DURATION --nitro true
+else
+  echo "ERROR: Invalid game mode!"
+  exit 1
+fi
 
 wait
 echo DONE!
 
-echo RESULTS:
-cat codeball2018-linux/res.txt
+echo "RESULTS:"
+readarray -t RESFILE < codeball2018-linux/results/run_result.txt
+IFS=':' read -ra P1_res <<< "${RESFILE[0]}"
+IFS=':' read -ra P2_res <<< "${RESFILE[1]}"
+let P1_scores=$((0 + P1_res[1]))
+let P2_scores=$((0 + P2_res[1]))
+if ((${RESFILE[0]:0:1} == "1" && ${RESFILE[1]:0:1} == "2"))
+then
+  echo "$P1_NAME WINS!"
+elif ((${RESFILE[0]:0:1} == "2" && ${RESFILE[1]:0:1} == "1"))
+then
+  echo "$P2_NAME WINS!"
+else
+  echo "DRAW!"
+fi
+echo "SCORES: $P1_NAME $P1_scores - $P2_NAME $P2_scores"
 
 echo "time taken: $SECONDS secs"
+
+# Cleanup
+rm -- codeball2018-linux/results/run_result.txt
